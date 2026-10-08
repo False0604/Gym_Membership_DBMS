@@ -1,0 +1,2039 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gym DBMS Live Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: the deck's title slide is pinned while the console rises over it; the console is one panel with two faces, form and ER model */
+:root{
+  color-scheme: dark;
+  --bg:#0E0C15;
+  --panel:#13111C;
+  --panel-2:#191627;
+  --code:#0C0A12;
+  --input:#0F0D17;
+  --er-bg:#100E18;
+  --node:#1B1830;
+  --node-stroke:#4D43A3;
+  --edge:#5E55A6;
+  --line:rgba(207,201,255,.10);
+  --line-2:rgba(207,201,255,.19);
+  --grid:rgba(207,201,255,.035);
+  --ink:#F3F0E7;
+  --text:#CBC9D8;
+  --muted:#A7A6B6;
+  --dim:#7D7C8C;
+  --violet:#8F80FF;
+  --violet-hi:#A89CFF;
+  --on-violet:#0E0C15;
+  --lav:#CFC9FF;
+  --lav-2:#E9E6FF;
+  --amber:#E6B84B;
+  --mint:#6FD6A6;
+  --mint-bg:rgba(111,214,166,.12);
+  --coral:#FF8A78;
+  --coral-bg:rgba(255,138,120,.12);
+  --shadow:rgba(70,52,190,.55);
+  --sx-k:#B4A9FF;
+  --sx-t:#F3F0E7;
+  --sx-c:#A7A6B6;
+  --sx-s:#F2A07B;
+  --sx-n:#E6B84B;
+  --sx-f:#6FD6A6;
+  --sx-cm:#6C6A7E;
+  --font-display:"Archivo Black","Arial Black",Impact,sans-serif;
+  --font-body:Inter,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Consolas,"Courier New",monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--text);font:400 15px/1.55 var(--font-body);-webkit-font-smoothing:antialiased;overflow-x:clip}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--lav);outline-offset:2px}
+.eyebrow{margin:0;font:600 12px/1.3 var(--font-body);letter-spacing:.24em;text-transform:uppercase;color:var(--lav)}
+
+/* atmosphere */
+.atmos{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.atmos i{position:absolute;display:block;border-radius:50%}
+.g1{left:-22vw;top:-38vh;width:86vw;height:86vw;background:radial-gradient(closest-side,rgba(92,70,205,.44),rgba(92,70,205,0));transform:translate3d(calc(var(--p,0)*12vw),calc(var(--p,0)*-10vh),0)}
+.g2{right:-22vw;top:-30vh;width:62vw;height:62vw;background:radial-gradient(closest-side,rgba(122,40,86,.30),rgba(122,40,86,0));transform:translate3d(calc(var(--p,0)*-10vw),0,0)}
+.g3{left:-24vw;bottom:-40vh;width:64vw;height:64vw;background:radial-gradient(closest-side,rgba(24,98,106,.30),rgba(24,98,106,0))}
+.g4{right:-18vw;bottom:-36vh;width:68vw;height:68vw;background:radial-gradient(closest-side,rgba(52,64,172,.36),rgba(52,64,172,0));transform:translate3d(0,calc(var(--p,0)*-12vh),0)}
+main,.foot{position:relative;z-index:1}
+
+/* title stage */
+.intro{position:relative;height:180vh}
+.stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:flex;align-items:center}
+.stage::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:72px 72px;-webkit-mask-image:radial-gradient(ellipse 70% 60% at 32% 45%,#000,transparent 75%);mask-image:radial-gradient(ellipse 70% 60% at 32% 45%,#000,transparent 75%);opacity:calc(1 - var(--p,0))}
+.hero{position:relative;width:100%;max-width:1360px;margin-inline:auto;padding-inline:clamp(28px,7vw,112px);display:grid;justify-items:start;gap:clamp(18px,2.4vw,28px);transform-origin:15% 50%;transform:translate3d(0,calc(var(--p,0)*-7vh),0) scale(calc(1 - var(--p,0)*.07))}
+.hero .eyebrow{opacity:calc(1 - var(--p,0)*2.4)}
+.title{margin:0;font:400 clamp(38px,6vw,88px)/.98 var(--font-display);color:var(--ink);letter-spacing:-.012em}
+.title .line{display:block;transform:translate3d(0,calc(var(--p,0)*var(--d)*-1px),0);opacity:calc(1 - var(--p,0)*1.5)}
+.lede{margin:0;max-width:36em;font-size:clamp(16px,1.5vw,20px);line-height:1.5;color:var(--muted);opacity:calc(1 - var(--p,0)*1.9)}
+.cue{position:absolute;left:calc(max(0px,(100% - 1360px)/2) + clamp(28px,7vw,112px));bottom:clamp(30px,6vh,56px);display:flex;align-items:center;gap:14px;color:var(--muted);text-decoration:none;font:500 13px var(--font-body);letter-spacing:.04em;opacity:calc(1 - var(--p,0)*3)}
+.cue i{width:56px;height:1px;background:var(--line-2);position:relative;overflow:hidden}
+.cue i::after{content:"";position:absolute;inset:0;width:40%;background:var(--lav);animation:cue 2.2s ease-in-out infinite}
+@keyframes cue{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+
+/* demo */
+.demo{position:relative;z-index:2;margin-top:-80vh;padding:0 clamp(16px,3vw,40px) 80px}
+.demo-head,.console{max-width:1360px;margin-inline:auto}
+.demo-head{display:grid;gap:12px;padding-block:8px 28px;transform:translate3d(0,calc((1 - var(--q,1))*44px),0);opacity:calc(.15 + var(--q,1)*.85)}
+.demo-head h2{margin:0;font:400 clamp(28px,3.6vw,48px)/1.05 var(--font-display);color:var(--ink);text-wrap:balance}
+.demo-head .sub{margin:0;max-width:64ch;color:var(--muted);font-size:16px}
+.console{position:relative;border:1px solid var(--line-2);border-radius:18px;background:linear-gradient(180deg,var(--panel-2),var(--panel));box-shadow:0 60px 140px -60px var(--shadow),inset 0 1px 0 rgba(255,255,255,.04);transform:translate3d(0,calc((1 - var(--q,1))*96px),0) scale(calc(.94 + var(--q,1)*.06));transform-origin:50% 0;opacity:calc(.3 + var(--q,1)*.7)}
+.console-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line)}
+.db-id{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font:600 13px var(--font-mono);color:var(--ink)}
+.db-id .dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 4px rgba(111,214,166,.15)}
+.db-note{font:500 12px var(--font-body);color:var(--dim)}
+.bar-actions{display:flex;gap:8px;flex-wrap:wrap}
+.faces{position:relative}
+.faces.animating{overflow:hidden}
+.face{padding:clamp(16px,2vw,24px)}
+.face:focus{outline:none}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;border:1px solid transparent;padding:11px 18px;font:600 14px var(--font-body);cursor:pointer;transition:background-color .2s,border-color .2s,color .2s,transform .1s;white-space:nowrap}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--violet);color:var(--on-violet)}
+.btn.primary:hover{background:var(--violet-hi)}
+.btn.ghost{background:transparent;border-color:var(--line-2);color:var(--text)}
+.btn.ghost:hover{border-color:var(--lav);color:var(--ink)}
+.btn.sm{padding:7px 12px;font-size:12.5px;border-radius:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* tabs */
+.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:22px}
+.tab{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;align-items:center;text-align:left;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.02);cursor:pointer;color:var(--text);transition:border-color .2s,background-color .2s}
+.tab:hover{border-color:var(--line-2)}
+.tab .tn{grid-row:1/3;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:600 12px var(--font-mono);border:1px solid var(--line-2);color:var(--lav)}
+.tab .tl{font:600 14px/1.3 var(--font-body);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab .tt{font:500 11px/1.4 var(--font-mono);color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab[aria-selected="true"]{border-color:rgba(143,128,255,.55);background:rgba(143,128,255,.10)}
+.tab[aria-selected="true"] .tn{background:var(--violet);border-color:var(--violet);color:var(--on-violet)}
+
+/* form face */
+.form-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:26px;align-items:start}
+.flow-form{display:grid;gap:18px}
+.flow-desc{margin:0;color:var(--muted);font-size:14.5px;max-width:52ch}
+.flow-desc b{color:var(--ink);font-weight:600}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+.field{display:grid;gap:6px;min-width:0}
+.field.span2{grid-column:1/-1}
+.fh{display:flex;justify-content:space-between;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
+.fl{font:600 13px var(--font-body);color:var(--ink)}
+.fc{font:500 10.5px var(--font-mono);color:var(--dim)}
+.field input,.field select{width:100%;min-width:0;padding:10px 12px;border-radius:9px;border:1px solid var(--line-2);background-color:var(--input);color:var(--ink);font:500 14.5px var(--font-body);transition:border-color .15s,box-shadow .15s}
+.field select{appearance:none;-webkit-appearance:none;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23A7A6B6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.field select option{background:#15131F;color:#F3F0E7}
+.field input:focus,.field select:focus{outline:none;border-color:var(--violet);box-shadow:0 0 0 3px rgba(143,128,255,.22)}
+.field input.mono{font-family:var(--font-mono);font-size:13.5px}
+.field input.flash,.field select.flash{border-color:var(--amber);box-shadow:0 0 0 3px rgba(230,184,75,.18)}
+.try{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.try-l{font:600 10.5px var(--font-body);letter-spacing:.18em;text-transform:uppercase;color:var(--amber);margin-right:4px}
+.try button{border:1px dashed var(--line-2);background:transparent;color:var(--muted);padding:6px 11px;border-radius:999px;font:500 12.5px var(--font-body);cursor:pointer;transition:border-color .15s,color .15s}
+.try button:hover{border-color:var(--coral);color:var(--ink)}
+.actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-top:2px}
+.hint{font:500 12px var(--font-mono);color:var(--dim)}
+.preview-col{display:grid;gap:16px;min-width:0}
+
+/* code */
+.codebox{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--code);min-width:0}
+.codebox-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 14px;background:rgba(143,128,255,.06);border-bottom:1px solid var(--line)}
+.codebox-h b{font:600 12.5px var(--font-body);color:var(--ink)}
+.codebox-h span{font:600 10px var(--font-mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+.code{margin:0;padding:14px 16px;font:500 12.5px/1.7 var(--font-mono);color:var(--sx-c);white-space:pre;overflow-x:auto;tab-size:2}
+.code .k{color:var(--sx-k)}
+.code .t{color:var(--sx-t);font-weight:600}
+.code .c{color:var(--sx-c)}
+.code .s{color:var(--sx-s)}
+.code .n{color:var(--sx-n)}
+.code .f{color:var(--sx-f)}
+.code .cm{color:var(--sx-cm);font-style:italic}
+
+/* checks list */
+.checks{border:1px solid var(--line);border-radius:12px;padding:14px 16px 10px;background:rgba(255,255,255,.015)}
+.checks-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.checks-h .eyebrow{font-size:10.5px;letter-spacing:.18em}
+.verdict{font:600 11.5px var(--font-mono);padding:4px 9px;border-radius:999px}
+.verdict.ok{color:var(--mint);background:var(--mint-bg)}
+.verdict.fail{color:var(--coral);background:var(--coral-bg)}
+.steps{list-style:none;margin:0;padding:0;display:grid}
+.step{display:grid;grid-template-columns:20px minmax(0,1fr);gap:12px;padding:6px 0;position:relative;transition:opacity .25s}
+.step::before{content:"";position:absolute;left:9.5px;top:28px;bottom:-6px;width:1px;background:var(--line-2)}
+.step:last-child::before{display:none}
+.mark{width:20px;height:20px;margin-top:1px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--code);display:grid;place-items:center;font:700 11px/1 var(--font-mono);color:transparent;position:relative;z-index:1;transition:border-color .2s,color .2s,background-color .2s}
+.mark::after{content:""}
+.step[data-state="ok"] .mark{border-color:var(--mint);color:var(--mint)}
+.step[data-state="ok"] .mark::after{content:"\2713"}
+.step[data-state="fail"] .mark{border-color:var(--coral);color:var(--coral);background:#2A1418}
+.step[data-state="fail"] .mark::after{content:"\2715"}
+.step[data-state="run"] .mark{border-color:var(--violet);background:#221D44;animation:ring 1s ease-out infinite}
+.step[data-state="skip"]{opacity:.35}
+.step[data-state="skip"] .mark::after{content:"\2013";color:var(--dim)}
+.step[data-state="pending"]{opacity:.5}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(143,128,255,.55)}100%{box-shadow:0 0 0 9px rgba(143,128,255,0)}}
+.st{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;min-width:0}
+.st .tag{font:600 9.5px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--lav);padding:2px 5px;border-radius:4px;background:rgba(143,128,255,.10)}
+.st b{font:600 13px/1.4 var(--font-body);color:var(--ink)}
+.st .detail{flex-basis:100%;font-size:12.5px;line-height:1.45;color:var(--muted);overflow-wrap:anywhere}
+.step[data-kind="trigger"] .tag{color:var(--amber);background:rgba(230,184,75,.12)}
+.step[data-kind="check"] .tag,.step[data-kind="not-null"] .tag,.step[data-kind="type"] .tag{color:var(--mint);background:var(--mint-bg)}
+.step[data-kind="write"] .tag,.step[data-kind="pk"] .tag{color:var(--on-violet);background:var(--violet)}
+.step[data-kind="commit"] .tag,.step[data-kind="begin"] .tag{color:var(--muted);background:rgba(255,255,255,.06)}
+.step[data-state="fail"] .detail{color:var(--coral)}
+
+/* database face */
+.db-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.crumb{flex:1 1 200px;min-width:0;font:600 12.5px var(--font-mono);color:var(--lav);letter-spacing:.03em}
+.run-ctrl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pi{display:inline-block;width:10px;height:11px;border-left:3px solid currentColor;border-right:3px solid currentColor}
+#pauseBtn[aria-pressed="true"]{border-color:var(--amber);color:var(--amber)}
+#pauseBtn[aria-pressed="true"] .pi{width:0;height:0;border-left:9px solid currentColor;border-right:0;border-top:5.5px solid transparent;border-bottom:5.5px solid transparent}
+.paused-pill{font:600 10.5px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--on-violet);background:var(--amber);padding:4px 9px;border-radius:999px}
+.console.is-paused .inc-status::before{content:"Paused · ";color:var(--amber)}
+.db-grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:20px;align-items:start}
+.run{display:grid;gap:16px;min-width:0}
+.run .code{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.model{display:grid;gap:16px;min-width:0}
+.er-box{border:1px solid var(--line);border-radius:14px;background:var(--er-bg);overflow:hidden}
+.er-scroll{overflow-x:auto}
+#er{display:block;width:100%;height:auto;aspect-ratio:1800/640;min-width:720px}
+#er .box{fill:var(--node);stroke:var(--node-stroke);stroke-width:2;transition:fill .35s,stroke .35s}
+#er .inner{fill:none;stroke:var(--node-stroke);stroke-dasharray:7 6;stroke-width:1.5}
+#er .name{fill:var(--ink);font:600 30px var(--font-body)}
+#er .major .name{font:400 34px var(--font-display)}
+#er .long .name{font-size:26px}
+#er .count{fill:var(--muted);font:500 20px var(--font-mono)}
+#er .line{fill:none;stroke:var(--edge);stroke-width:2;marker-end:url(#ah);transition:stroke .3s}
+#er .comet{fill:none;stroke:var(--lav-2);stroke-width:6;stroke-linecap:round;opacity:0}
+#er .bridge{fill:none;stroke:var(--er-bg);stroke-width:10}
+#er .pill rect{fill:var(--er-bg);stroke:var(--edge);stroke-width:1.5}
+#er .pill text{fill:var(--lav);font:600 17px var(--font-body)}
+#er .pill.one rect{stroke:var(--amber)}
+#er .pill.one text{fill:var(--amber)}
+#er .node{cursor:pointer;transition:opacity .35s;transform-box:fill-box;transform-origin:center}
+#er .node:focus{outline:none}
+#er .node:focus-visible .box{stroke:#FFFFFF;stroke-width:3}
+#er .node:hover .box{stroke:var(--violet)}
+#er .node.is-selected .box{stroke-width:3.5}
+#er .node.is-target .box{stroke:var(--violet);fill:#241F48;filter:url(#glow)}
+#er .node.is-read .box{stroke:var(--lav);fill:#211D3C;stroke-width:3}
+#er .node.is-ok .box{stroke:var(--mint);fill:#142A25;filter:url(#glow-ok)}
+#er .node.is-fail .box{stroke:var(--coral);fill:#33161D;filter:url(#glow-fail)}
+#er .node.is-fail{animation:shake .45s ease-in-out}
+#er .node.hit .box{animation:hit .55s ease-out}
+#er .edge,#er .pill{transition:opacity .35s}
+#er .edge.is-on .line{stroke:var(--lav);stroke-width:3;marker-end:url(#ah-on)}
+#er .pill.is-on rect{stroke:var(--lav)}
+#er .edge.is-fail .line{stroke:var(--coral);marker-end:url(#ah-fail)}
+#er.running .node{opacity:.4}
+#er.running .node.is-target,#er.running .node.is-touched,#er.running .node.is-selected{opacity:1}
+#er.running .edge,#er.running .pill{opacity:.28}
+#er.running .edge.is-on,#er.running .pill.is-on{opacity:1}
+#er .float{font:700 22px var(--font-mono)}
+#er .float.up{fill:var(--mint)}
+#er .float.down{fill:var(--coral)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+@keyframes hit{0%{stroke-width:2}35%{stroke-width:7}100%{stroke-width:3}}
+.legend{margin:0;padding:10px 16px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 20px;font:500 11.5px var(--font-body);color:var(--dim)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.lg-dash{width:18px;height:12px;border:1.5px dashed var(--node-stroke);border-radius:3px}
+.lg-one{font:600 10.5px var(--font-body);color:var(--amber);border:1px solid var(--amber);border-radius:999px;padding:0 6px}
+.lg-arrow{width:24px;height:1.5px;background:var(--edge);position:relative}
+.lg-arrow::after{content:"";position:absolute;right:-1px;top:-3.5px;border-left:7px solid var(--edge);border-top:4px solid transparent;border-bottom:4px solid transparent}
+
+.inspector{border:1px solid var(--line);border-radius:14px;background:var(--code);overflow:hidden;min-width:0}
+.insp-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+.insp-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.insp-tabs .lbl{font:600 10px var(--font-body);letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-right:4px}
+.insp-tabs button{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:7px;padding:5px 10px;font:600 12px var(--font-body);cursor:pointer}
+.insp-tabs button[aria-pressed="true"]{border-color:var(--violet);color:var(--ink);background:rgba(143,128,255,.12)}
+.insp-meta{font:500 11.5px var(--font-mono);color:var(--dim)}
+.table-scroll{overflow-x:auto}
+table.grid{width:100%;border-collapse:collapse;font:500 12.5px var(--font-mono);font-variant-numeric:tabular-nums}
+.grid th{text-align:left;padding:9px 14px;font:600 10.5px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line);white-space:nowrap}
+.grid th.pk span{text-decoration:underline;text-underline-offset:3px;color:var(--lav)}
+.grid th small{margin-left:6px;font:600 9px var(--font-mono);letter-spacing:.06em;color:var(--amber)}
+.grid td{padding:8px 14px;border-bottom:1px solid rgba(207,201,255,.06);color:var(--text);white-space:nowrap}
+.grid tr:last-child td{border-bottom:0}
+.grid td.num{text-align:right}
+.grid th.num{text-align:right}
+.grid .null{color:var(--dim);font-style:italic}
+.grid tr.new td{background:rgba(111,214,166,.08);color:var(--ink)}
+.grid tr.ghost td{color:var(--coral);background:rgba(255,138,120,.05)}
+.grid tr.ghost td:not(.flag){text-decoration:line-through;text-decoration-color:rgba(255,138,120,.55)}
+.grid td.flag{width:1%}
+.badge{display:inline-block;padding:2px 7px;border-radius:5px;font:600 10.5px var(--font-mono);letter-spacing:.04em;text-decoration:none}
+.badge.ok{color:var(--mint);background:var(--mint-bg)}
+.badge.bad{color:var(--coral);background:var(--coral-bg)}
+.badge.info{color:var(--lav);background:rgba(143,128,255,.14)}
+.badge.dim{color:var(--muted);background:rgba(255,255,255,.06)}
+
+.outcome:empty{display:none}
+.oc{border-radius:12px;padding:14px 16px;display:grid;gap:8px;border:1px solid}
+.oc.ok{border-color:rgba(111,214,166,.35);background:rgba(111,214,166,.07)}
+.oc.fail{border-color:rgba(255,138,120,.4);background:rgba(255,138,120,.07)}
+.oc b{font:700 11.5px var(--font-mono);letter-spacing:.16em}
+.oc.ok b{color:var(--mint)}
+.oc.fail b{color:var(--coral)}
+.oc code{font:500 12px/1.55 var(--font-mono);color:var(--ink);overflow-wrap:anywhere}
+.oc p{margin:0;font-size:13px;color:var(--muted)}
+.viva{margin:18px 0 0;display:flex;gap:6px 12px;align-items:baseline;flex-wrap:wrap;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02);font-size:13.5px;color:var(--muted)}
+.viva b{font:600 10.5px var(--font-body);letter-spacing:.18em;text-transform:uppercase;color:var(--amber)}
+.viva span{flex:1 1 300px;min-width:0}
+
+/* row being inserted */
+.incoming{border:1px solid var(--line);border-radius:14px;background:var(--er-bg);padding:14px 16px;display:grid;gap:12px;margin-bottom:20px}
+.inc-h{display:flex;justify-content:space-between;align-items:center;gap:6px 16px;flex-wrap:wrap}
+.inc-h .eyebrow{font-size:10.5px;letter-spacing:.18em}
+.inc-status{font:600 12.5px var(--font-mono);color:var(--lav)}
+.inc-status.ok{color:var(--mint)}
+.inc-status.fail{color:var(--coral)}
+.inc-rows{display:grid;gap:12px}
+.inc-row{display:grid;grid-template-columns:132px minmax(0,1fr);gap:14px;align-items:center}
+.inc-name{display:flex;align-items:center;gap:10px;font:600 14px/1.3 var(--font-body);color:var(--ink)}
+.inc-name > i{font-style:normal;color:var(--violet);font-size:18px}
+.inc-name small{display:block;font:500 10.5px var(--font-mono);color:var(--dim);letter-spacing:.04em}
+.inc-row.stored .inc-name small{color:var(--mint)}
+.inc-row.undone .inc-name small,.inc-row.rejected .inc-name small{color:var(--coral)}
+.cells{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.cell{display:grid;gap:4px;min-width:96px;padding:8px 12px;border:1px solid var(--line-2);border-radius:9px;background:var(--code);transition:border-color .25s,background-color .25s,box-shadow .25s,opacity .3s}
+.cell .cl{display:flex;align-items:center;gap:6px;font:600 10px/1.2 var(--font-mono);letter-spacing:.04em;color:var(--dim)}
+.cell .cl em{font-style:normal;font-size:9px;color:var(--amber)}
+.cell .cl i{margin-left:auto;font-style:normal;font-weight:700}
+.cell .cv{font:500 13.5px/1.35 var(--font-mono);color:var(--ink);white-space:nowrap;transition:opacity .2s}
+.cell.await .cv{opacity:0}
+.cell.pending{border-style:dashed}
+.cell.pending .cv{color:var(--dim);font-style:italic;font-size:12px}
+.cell.filled{border-color:rgba(143,128,255,.6)}
+.cell.checking{border-color:var(--lav);background:#1D1938;box-shadow:0 0 0 3px rgba(207,201,255,.16)}
+.cell.checking .cl{color:var(--lav)}
+.cell.ok{border-color:rgba(111,214,166,.55)}
+.cell.ok .cl i::before{content:"\2713";color:var(--mint)}
+.cell.fail{border-color:var(--coral);background:rgba(255,138,120,.1);box-shadow:0 0 0 3px rgba(255,138,120,.14)}
+.cell.fail .cl{color:var(--coral)}
+.cell.fail .cl i::before{content:"\2715";color:var(--coral)}
+.cell.pop{animation:pop .45s ease-out}
+@keyframes pop{0%{transform:scale(.92)}55%{transform:scale(1.05)}100%{transform:scale(1)}}
+.inc-row.stored .cells{opacity:.6}
+.inc-row.undone .cv,.inc-row.rejected .cv{text-decoration:line-through;text-decoration-color:rgba(255,138,120,.6)}
+.inc-row.skipped .cells{opacity:.4}
+.cv .k{color:var(--sx-k)}
+.cv .s{color:var(--sx-s)}
+.cv .n{color:var(--sx-n)}
+.cv .f{color:var(--sx-f)}
+.fly-row{position:fixed;z-index:60;margin:0;padding:10px;border-radius:12px;background:rgba(30,26,60,.96);border:1px solid var(--violet);box-shadow:0 24px 60px -12px rgba(143,128,255,.65);pointer-events:none;transform-origin:center}
+
+.chip-layer{position:fixed;inset:0;pointer-events:none;z-index:60}
+.fly-chip{position:absolute;left:0;top:0;padding:4px 10px;border-radius:7px;background:#221D40;border:1px solid rgba(207,201,255,.55);color:var(--ink);font:500 13.5px/1.35 var(--font-mono);white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 10px 30px -8px rgba(143,128,255,.65);will-change:transform,opacity}
+
+/* existing members */
+.members{max-width:1360px;margin:56px auto 0;display:grid;gap:16px}
+.members-head{display:flex;justify-content:space-between;align-items:end;gap:8px 32px;flex-wrap:wrap}
+.members-head h2{margin:8px 0 0;font:400 clamp(22px,2.4vw,32px)/1.1 var(--font-display);color:var(--ink)}
+.members-head > p{margin:0;max-width:58ch;color:var(--muted);font-size:14px}
+.members-box{border:1px solid var(--line-2);border-radius:16px;background:linear-gradient(180deg,var(--panel-2),var(--panel));overflow:hidden}
+.members-box .grid td,.members-box .grid th{padding-block:10px}
+.members-meta{display:flex;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--line);font:500 11.5px var(--font-mono);color:var(--dim)}
+.grid tr.fresh td{background:rgba(111,214,166,.08);color:var(--ink)}
+.grid .note{margin-left:6px;font:500 10.5px var(--font-mono);color:var(--lav)}
+.oc p.sync{font:500 12px/1.5 var(--font-mono);color:var(--muted)}
+.oc p.sync.ok{color:var(--mint)}
+.oc p.sync.bad{color:var(--coral)}
+.db-id .dot.live{background:var(--violet);box-shadow:0 0 0 4px rgba(143,128,255,.2)}
+/* tab 5: CRUD */
+.seg{display:flex;gap:4px;padding:4px;border:1px solid var(--line-2);border-radius:10px;background:var(--input)}
+.seg button{flex:1;border:0;background:transparent;color:var(--muted);padding:7px 6px;border-radius:7px;font:600 13px var(--font-body);cursor:pointer}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:rgba(143,128,255,.2);color:var(--ink)}
+.seg button[data-op="delete"][aria-pressed="true"]{background:var(--coral-bg);color:var(--coral)}
+.btn.primary.danger{background:var(--coral);color:var(--on-violet)}
+.field input:disabled,.field select:disabled{opacity:.6;cursor:not-allowed}
+.crud-result:empty{display:none}
+.crud-result{border:1px solid var(--line);border-radius:12px;background:var(--code);overflow:hidden;min-width:0}
+.crud-status{padding:10px 14px;font:600 12px/1.5 var(--font-mono);color:var(--muted);border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.crud-status.ok{color:var(--mint)}
+.crud-status.fail{color:var(--coral)}
+.crud-result .table-scroll{max-height:340px;overflow:auto}
+.foot{max-width:1360px;margin:0 auto;padding:26px clamp(16px,3vw,40px) 40px;display:flex;justify-content:space-between;gap:8px 24px;flex-wrap:wrap;font-size:13px;color:var(--dim)}
+.foot b{color:var(--muted);font-weight:600}
+
+@media (max-width:1080px){
+  .db-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:900px){
+  .form-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:760px){
+  .inc-row{grid-template-columns:minmax(0,1fr);gap:8px}
+  .tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fields{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  .tab{padding:10px 12px;column-gap:10px}
+  .tab .tl{white-space:normal;font-size:13px}
+  .tab .tt{display:none}
+  .console-bar{padding:12px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  .intro{height:auto}
+  .stage{position:relative;height:auto;min-height:92vh;padding-block:72px 110px}
+  .demo{margin-top:0}
+  .cue i::after{animation:none}
+  *,*::before,*::after{transition-duration:0s!important;animation-duration:0s!important;animation-iteration-count:1!important}
+}
+</style>
+
+<div class="atmos" aria-hidden="true"><i class="g1"></i><i class="g2"></i><i class="g3"></i><i class="g4"></i></div>
+
+<main>
+  <section class="intro" id="intro" aria-label="Title">
+    <div class="stage">
+      <div class="hero">
+        <p class="eyebrow">Database Management Systems · Live Demo</p>
+        <h1 class="title">
+          <span class="line" style="--d:30">Gym Membership</span>
+          <span class="line" style="--d:70">&amp; Fitness Session</span>
+          <span class="line" style="--d:110">Management System</span>
+        </h1>
+        <p class="lede">Fill in a record, run the INSERT, and watch it pass every key, CHECK and trigger before it lands in the schema.</p>
+      </div>
+      <a class="cue" href="#demo"><span>Scroll to open the console</span><i aria-hidden="true"></i></a>
+    </div>
+  </section>
+
+  <section class="demo" id="demo" aria-labelledby="demoTitle">
+    <header class="demo-head">
+      <p class="eyebrow">Live demo · 14 tables · MySQL 8 rules</p>
+      <h2 id="demoTitle">Add a record and follow it into the schema</h2>
+      <p class="sub">The four tabs follow one member from sign-up to their first class. Run a step and the console lays out the row being inserted, checks each value against its constraint, then shows where the row is stored in the ER model.</p>
+    </header>
+
+    <div class="console" id="console" data-face="form">
+      <div class="console-bar">
+        <div class="db-id"><span class="dot" aria-hidden="true"></span>gym_db<span class="db-note">Simulated MySQL 8 engine · runs in this page · sample data</span></div>
+        <div class="bar-actions">
+          <button class="btn ghost sm" id="browseBtn" type="button">Browse tables</button>
+          <button class="btn ghost sm" id="resetBtn" type="button">Reset sample data</button>
+        </div>
+      </div>
+
+      <div class="faces" id="faces">
+        <!-- FACE 1 · form -->
+        <div class="face face-form" id="faceForm" tabindex="-1">
+          <div class="tabs" role="tablist" aria-label="Insert steps">
+            <button class="tab" role="tab" id="tab-member" aria-controls="form-member" aria-selected="true" data-flow="member" type="button"><span class="tn">1</span><span class="tl">Register member</span><span class="tt">Member</span></button>
+            <button class="tab" role="tab" id="tab-subscribe" aria-controls="form-subscribe" aria-selected="false" data-flow="subscribe" type="button" tabindex="-1"><span class="tn">2</span><span class="tl">Subscribe &amp; pay</span><span class="tt">Subscription + Payment</span></button>
+            <button class="tab" role="tab" id="tab-book" aria-controls="form-book" aria-selected="false" data-flow="book" type="button" tabindex="-1"><span class="tn">3</span><span class="tl">Book a class</span><span class="tt">Registration</span></button>
+            <button class="tab" role="tab" id="tab-checkin" aria-controls="form-checkin" aria-selected="false" data-flow="checkin" type="button" tabindex="-1"><span class="tn">4</span><span class="tl">Check in</span><span class="tt">Attendance</span></button>
+            <button class="tab" role="tab" id="tab-crud" aria-controls="form-crud" aria-selected="false" data-flow="crud" type="button" tabindex="-1"><span class="tn">5</span><span class="tl">Manage data</span><span class="tt">CRUD · any table</span></button>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-col">
+              <form class="flow-form" id="form-member" data-flow="member" role="tabpanel" aria-labelledby="tab-member" novalidate autocomplete="off">
+                <p class="flow-desc">Adds one person to <b>Member</b>. Nothing else is linked to them yet.</p>
+                <div class="fields">
+                  <label class="field span2"><span class="fh"><span class="fl">Full name</span><span class="fc">name · VARCHAR(80) · NOT NULL</span></span><input id="m-name" name="name"></label>
+                  <label class="field"><span class="fh"><span class="fl">Phone</span><span class="fc">phone · CHAR(10) · UNIQUE</span></span><input id="m-phone" name="phone" class="mono" inputmode="numeric"></label>
+                  <label class="field"><span class="fh"><span class="fl">Email</span><span class="fc">email · UNIQUE</span></span><input id="m-email" name="email" class="mono"></label>
+                  <label class="field"><span class="fh"><span class="fl">Date of birth</span><span class="fc">dob · DATE</span></span><input id="m-dob" name="dob" type="date"></label>
+                  <label class="field"><span class="fh"><span class="fl">Join date</span><span class="fc">join_date · DATE · NOT NULL</span></span><input id="m-join" name="join_date" type="date"></label>
+                </div>
+                <div class="try"><span class="try-l">Try a rejection</span><button type="button" data-try="dup-email">Email already used</button><button type="button" data-try="no-name">Missing name</button><button type="button" data-try="long-phone">11-digit phone</button></div>
+                <div class="actions"><button class="btn primary run-btn" type="submit">Run INSERT <span aria-hidden="true">→</span></button><span class="hint">writes to Member</span></div>
+              </form>
+
+              <form class="flow-form" id="form-subscribe" data-flow="subscribe" role="tabpanel" aria-labelledby="tab-subscribe" novalidate autocomplete="off" hidden>
+                <p class="flow-desc">Opens a <b>Subscription</b> and records its <b>Payment</b> inside one transaction.</p>
+                <div class="fields">
+                  <label class="field span2"><span class="fh"><span class="fl">Member</span><span class="fc">member_id · FK → Member</span></span><select id="s-member" name="member_id"></select></label>
+                  <label class="field span2"><span class="fh"><span class="fl">Plan</span><span class="fc">plan_id · FK → Plan</span></span><select id="s-plan" name="plan_id"></select></label>
+                  <label class="field"><span class="fh"><span class="fl">Start date</span><span class="fc">start_date · DATE</span></span><input id="s-start" name="start_date" type="date"></label>
+                  <label class="field"><span class="fh"><span class="fl">End date</span><span class="fc">CHECK &gt; start_date</span></span><input id="s-end" name="end_date" type="date"></label>
+                  <label class="field"><span class="fh"><span class="fl">Amount (₹)</span><span class="fc">DECIMAL(10,2) · CHECK ≥ 0</span></span><input id="s-amount" name="amount" type="number" step="0.01" class="mono" data-to="payment"></label>
+                  <label class="field"><span class="fh"><span class="fl">Method</span><span class="fc">ENUM</span></span><select id="s-method" name="method" data-to="payment"><option value="UPI">UPI</option><option value="CARD">CARD</option><option value="CASH">CASH</option></select></label>
+                </div>
+                <div class="try"><span class="try-l">Try a rejection</span><button type="button" data-try="neg-amount">Negative amount</button><button type="button" data-try="bad-dates">End before start</button><button type="button" data-try="no-member">Member 999</button><button type="button" data-try="has-sub">Already subscribed</button></div>
+                <div class="actions"><button class="btn primary run-btn" type="submit">Run transaction <span aria-hidden="true">→</span></button><span class="hint">writes to Subscription, Payment</span></div>
+              </form>
+
+              <form class="flow-form" id="form-book" data-flow="book" role="tabpanel" aria-labelledby="tab-book" novalidate autocomplete="off" hidden>
+                <p class="flow-desc">Books a seat in <b>Registration</b>. Two BEFORE INSERT triggers check the member's plan and the class capacity first.</p>
+                <div class="fields">
+                  <label class="field span2"><span class="fh"><span class="fl">Member</span><span class="fc">member_id · FK → Member</span></span><select id="b-member" name="member_id"></select></label>
+                  <label class="field span2"><span class="fh"><span class="fl">Class session</span><span class="fc">schedule_id · FK → Schedule</span></span><select id="b-sched" name="schedule_id"></select></label>
+                  <label class="field"><span class="fh"><span class="fl">Booking date</span><span class="fc">booking_date · DATE</span></span><input id="b-date" name="booking_date" type="date"></label>
+                </div>
+                <div class="try"><span class="try-l">Try a rejection</span><button type="button" data-try="full">Full class</button><button type="button" data-try="no-sub">Expired member</button><button type="button" data-try="dup-book">Already booked</button></div>
+                <div class="actions"><button class="btn primary run-btn" type="submit">Run INSERT <span aria-hidden="true">→</span></button><span class="hint">writes to Registration</span></div>
+              </form>
+
+              <form class="flow-form" id="form-checkin" data-flow="checkin" role="tabpanel" aria-labelledby="tab-checkin" novalidate autocomplete="off" hidden>
+                <p class="flow-desc">Records arrival in <b>Attendance</b>. Each booking can have only one attendance row.</p>
+                <div class="fields">
+                  <label class="field span2"><span class="fh"><span class="fl">Booking</span><span class="fc">registration_id · FK · UNIQUE</span></span><select id="c-reg" name="registration_id"></select></label>
+                  <label class="field"><span class="fh"><span class="fl">Check-in</span><span class="fc">check_in · DATETIME</span></span><input id="c-in" name="check_in" type="datetime-local"></label>
+                  <label class="field"><span class="fh"><span class="fl">Check-out</span><span class="fc">check_out · NULL allowed</span></span><input id="c-out" name="check_out" type="datetime-local"></label>
+                </div>
+                <div class="try"><span class="try-l">Try a rejection</span><button type="button" data-try="dup-checkin">Already checked in</button><button type="button" data-try="bad-out">Out before in</button></div>
+                <div class="actions"><button class="btn primary run-btn" type="submit">Run INSERT <span aria-hidden="true">→</span></button><span class="hint">writes to Attendance</span></div>
+              </form>
+
+              <form class="flow-form" id="form-crud" data-flow="crud" role="tabpanel" aria-labelledby="tab-crud" novalidate autocomplete="off" hidden>
+                <p class="flow-desc" id="k-desc"></p>
+                <div class="fields">
+                  <label class="field"><span class="fh"><span class="fl">Table</span><span class="fc">any of the 14</span></span><select id="k-table"></select></label>
+                  <div class="field"><span class="fh"><span class="fl">Operation</span><span class="fc">C · R · U · D</span></span>
+                    <div class="seg" id="k-ops" role="group" aria-label="Operation"><button type="button" data-op="create">Create</button><button type="button" data-op="read">Read</button><button type="button" data-op="update">Update</button><button type="button" data-op="delete">Delete</button></div></div>
+                  <label class="field span2" id="k-row-wrap" hidden><span class="fh"><span class="fl">Row</span><span class="fc">WHERE primary key =</span></span><select id="k-row"></select></label>
+                  <label class="field span2" id="k-filter-wrap" hidden><span class="fh"><span class="fl">Search</span><span class="fc">matches any column</span></span><input id="k-filter" placeholder="e.g. Priya, ACTIVE, 2026-10"></label>
+                </div>
+                <div class="fields" id="k-fields"></div>
+                <div class="actions"><button class="btn primary" id="k-run" type="submit">Run SELECT</button><span class="hint" id="k-hint"></span></div>
+                <div class="crud-result" id="crudResult" aria-live="polite"></div>
+              </form>
+            </div>
+
+            <div class="preview-col">
+              <div class="codebox">
+                <div class="codebox-h"><b id="pvFile">member.sql</b><span id="pvTag">Insert</span></div>
+                <pre class="code" id="pvSql"></pre>
+              </div>
+              <div class="checks">
+                <div class="checks-h"><p class="eyebrow">Checks MySQL will run</p><span class="verdict" id="pvVerdict"></span></div>
+                <ol class="steps" id="pvSteps"></ol>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FACE 2 · database -->
+        <div class="face face-db" id="faceDb" tabindex="-1" hidden>
+          <div class="db-toolbar">
+            <button class="btn ghost sm" id="backBtn" type="button">← Back to form</button>
+            <span class="crumb" id="crumb">INSERT INTO Member</span>
+            <div class="run-ctrl" id="runCtrl" hidden>
+              <span class="paused-pill" id="pausedPill" hidden>Paused</span>
+              <button class="btn ghost sm" id="stepBtn" type="button" title="Finish this check and stop before the next one (N)" hidden>Next check →</button>
+              <button class="btn ghost sm" id="pauseBtn" type="button" aria-pressed="false" title="Pause or resume the demo (P)"><span class="pi" aria-hidden="true"></span><span class="pl">Pause</span></button>
+            </div>
+            <button class="btn primary sm" id="nextBtn" type="button" hidden>Next</button>
+          </div>
+          <div class="incoming" id="incoming" hidden>
+            <div class="inc-h"><p class="eyebrow">Row being inserted</p><span class="inc-status" id="incStatus"></span></div>
+            <div class="inc-rows" id="incRows"></div>
+          </div>
+          <div class="db-grid">
+            <aside class="run" aria-label="Execution">
+              <div class="outcome" id="outcome" aria-live="polite"></div>
+              <ol class="steps" id="runSteps"></ol>
+              <div class="codebox">
+                <div class="codebox-h"><b id="runFile">member.sql</b><span>Statement</span></div>
+                <pre class="code" id="runSql"></pre>
+              </div>
+            </aside>
+            <div class="model">
+              <div class="er-box">
+                <div class="er-scroll" id="erScroll">
+                  <svg id="er" viewBox="0 0 1800 640" role="group" aria-label="Entity-relationship model of gym_db. Select a table to see its rows.">
+                    <defs>
+                      <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="13" markerHeight="13" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5E55A6"/></marker>
+                      <marker id="ah-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="15" markerHeight="15" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0L10 5L0 10z" fill="#CFC9FF"/></marker>
+                      <marker id="ah-fail" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="15" markerHeight="15" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0L10 5L0 10z" fill="#FF8A78"/></marker>
+                      <filter id="glow" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur in="SourceAlpha" stdDeviation="11" result="b"/><feFlood flood-color="#8F80FF" flood-opacity=".6"/><feComposite in2="b" operator="in" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                      <filter id="glow-ok" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur in="SourceAlpha" stdDeviation="11" result="b"/><feFlood flood-color="#6FD6A6" flood-opacity=".5"/><feComposite in2="b" operator="in" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                      <filter id="glow-fail" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur in="SourceAlpha" stdDeviation="11" result="b"/><feFlood flood-color="#FF8A78" flood-opacity=".55"/><feComposite in2="b" operator="in" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    </defs>
+                    <g id="erEdges"></g><g id="erPills"></g><g id="erNodes"></g><g id="erFx"></g>
+                  </svg>
+                </div>
+                <p class="legend"><span><i class="lg-arrow" aria-hidden="true"></i>Arrow points 1 → N</span><span><i class="lg-dash" aria-hidden="true"></i>Associative entity</span><span><i class="lg-one">1:1</i>One-to-one</span><span>Select any table to see its rows</span></p>
+              </div>
+              <div class="inspector">
+                <div class="insp-h"><div class="insp-tabs" id="inspTabs"></div><span class="insp-meta" id="inspMeta"></span></div>
+                <div class="table-scroll"><table class="grid" id="inspTable"></table></div>
+              </div>
+            </div>
+          </div>
+          <p class="viva" id="viva"><b>Viva point</b><span id="vivaText"></span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="members" role="region" aria-labelledby="membersTitle">
+      <div class="members-head">
+        <div><p class="eyebrow">Member LEFT JOIN Subscription, Plan</p><h2 id="membersTitle">Existing members</h2></div>
+        <p>Each member with their current subscription. The list refreshes after every COMMIT, so new members and plans show up here straight away.</p>
+      </div>
+      <div class="members-box">
+        <div class="table-scroll"><table class="grid" id="membersTable"></table></div>
+        <div class="members-meta"><span id="membersCount"></span><span>Members 1–40 are counted but not listed in this sample</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span><b>Review 2</b> · Implementation &amp; prototype · data resets when the page reloads</span>
+  <span>Gym Membership &amp; Fitness Session Management System</span>
+</footer>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+const calm = () => motionQuery.matches;
+/* pause control: timers only count down while running, and every animation freezes with them */
+let paused = false, stepMode = false, frozen = [], resumeWaiters = [];
+const waitResume = () => new Promise(r => resumeWaiters.push(r));
+/* the panel switch always finishes, even while paused, so the controls stay visible */
+function uiAnim(el, keyframes, options) { const a = el.animate(keyframes, options); a.id = 'ui'; return a; }
+/* every demo animation goes through here, so one started while paused is frozen at once */
+function runAnim(el, keyframes, options) {
+  const a = el.animate(keyframes, options);
+  if (paused) { a.pause(); frozen.push(a); }
+  return a;
+}
+async function sleep(ms) {
+  if (calm()) { if (paused) await waitResume(); return; }
+  let left = ms;
+  while (left > 0) {
+    if (paused) await waitResume();
+    const t = performance.now();
+    await new Promise(r => setTimeout(r, Math.min(left, 40)));
+    if (!paused) left -= performance.now() - t;
+  }
+}
+async function gate() {
+  if (stepMode) { stepMode = false; setPaused(true); }
+  if (paused) await waitResume();
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const nz = v => (v === undefined || v === null || String(v).trim() === '') ? null : String(v).trim();
+const int = v => { const n = Number(v); return nz(v) === null || !Number.isFinite(n) ? null : n; };
+
+/* ---------- dates ---------- */
+const pad = n => String(n).padStart(2, '0');
+const TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const day = n => { const d = new Date(TODAY); d.setDate(d.getDate() + n); return iso(d); };
+const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
+const addMonths = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1 + n, d)); };
+const localDT = d => `${iso(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const nowDT = (plus = 0) => { const d = new Date(); d.setSeconds(0, 0); d.setMinutes(d.getMinutes() + plus); return localDT(d); };
+const shiftDT = (v, mins) => { const d = new Date(v); d.setMinutes(d.getMinutes() + mins); return localDT(d); };
+const sqlDT = v => v ? v.replace('T', ' ') + ':00' : null;
+const showDT = v => v ? v.replace('T', ' ') : 'NULL';
+const DAY = { MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun' };
+const inr = n => '₹' + Number(n).toLocaleString('en-IN');
+
+/* ---------- schema (from Review 1 & 2) ---------- */
+const SCHEMA = {
+  member:       { label: 'Member', pk: 'member_id', cols: [['member_id', 'INT'], ['name', 'VARCHAR'], ['phone', 'CHAR', 'UQ'], ['email', 'VARCHAR', 'UQ'], ['dob', 'DATE'], ['join_date', 'DATE']] },
+  plan:         { label: 'Plan', pk: 'plan_id', cols: [['plan_id', 'INT'], ['name', 'VARCHAR'], ['duration_months', 'INT'], ['price', 'DECIMAL'], ['features', 'VARCHAR']] },
+  subscription: { label: 'Subscription', assoc: true, pk: 'subscription_id', cols: [['subscription_id', 'INT'], ['member_id', 'INT', 'FK'], ['plan_id', 'INT', 'FK'], ['start_date', 'DATE'], ['end_date', 'DATE'], ['status', 'ENUM']] },
+  payment:      { label: 'Payment', pk: 'payment_id', cols: [['payment_id', 'INT'], ['subscription_id', 'INT', 'FK'], ['amount', 'DECIMAL'], ['method', 'ENUM'], ['paid_on', 'DATE']] },
+  renewal:      { label: 'Renewal', pk: 'renewal_id', cols: [['renewal_id', 'INT'], ['subscription_id', 'INT', 'FK'], ['renewed_on', 'DATE'], ['new_end_date', 'DATE']] },
+  trainer:      { label: 'Trainer', pk: 'trainer_id', cols: [['trainer_id', 'INT'], ['name', 'VARCHAR'], ['specialization', 'VARCHAR'], ['shift', 'ENUM'], ['phone', 'CHAR', 'UQ']] },
+  assessment:   { label: 'Assessment', assoc: true, pk: 'assessment_id', cols: [['assessment_id', 'INT'], ['member_id', 'INT', 'FK'], ['trainer_id', 'INT', 'FK'], ['date', 'DATE'], ['weight', 'DECIMAL'], ['bmi', 'DECIMAL'], ['body_fat', 'DECIMAL']] },
+  workout:      { label: 'Workout Programme', pk: 'programme_id', cols: [['programme_id', 'INT'], ['member_id', 'INT', 'FK'], ['title', 'VARCHAR'], ['goal', 'VARCHAR'], ['weeks', 'INT']] },
+  class:        { label: 'Class', pk: 'class_id', cols: [['class_id', 'INT'], ['trainer_id', 'INT', 'FK'], ['title', 'VARCHAR'], ['capacity', 'INT'], ['room', 'VARCHAR']] },
+  schedule:     { label: 'Schedule', pk: 'schedule_id', cols: [['schedule_id', 'INT'], ['class_id', 'INT', 'FK'], ['day', 'ENUM'], ['start_time', 'TIME'], ['end_time', 'TIME']] },
+  registration: { label: 'Registration', assoc: true, pk: 'registration_id', cols: [['registration_id', 'INT'], ['member_id', 'INT', 'FK'], ['schedule_id', 'INT', 'FK'], ['booking_date', 'DATE'], ['status', 'ENUM']] },
+  attendance:   { label: 'Attendance', pk: 'attendance_id', cols: [['attendance_id', 'INT'], ['registration_id', 'INT', 'FK·UQ'], ['check_in', 'DATETIME'], ['check_out', 'DATETIME']] },
+  equipment:    { label: 'Equipment', pk: 'equipment_id', cols: [['equipment_id', 'INT'], ['name', 'VARCHAR'], ['category', 'VARCHAR'], ['purchase_date', 'DATE'], ['status', 'ENUM']] },
+  maintenance:  { label: 'Maintenance', pk: 'maintenance_id', cols: [['maintenance_id', 'INT'], ['equipment_id', 'INT', 'FK'], ['date', 'DATE'], ['cost', 'DECIMAL']] },
+};
+
+const FLOWS = {
+  member:    { tables: ['member'], file: 'member.sql', tag: 'Insert', crumb: 'INSERT INTO Member' },
+  subscribe: { tables: ['subscription', 'payment'], file: 'subscribe.sql', tag: 'Transaction', crumb: 'TRANSACTION · Subscription + Payment' },
+  book:      { tables: ['registration'], file: 'booking.sql', tag: 'Insert + triggers', crumb: 'INSERT INTO Registration' },
+  checkin:   { tables: ['attendance'], file: 'checkin.sql', tag: 'Insert', crumb: 'INSERT INTO Attendance' },
+};
+
+/* ---------- sample data (row counts match the Review 2 sample-data slide) ---------- */
+const PLAN_MONTHS = { 1: 1, 2: 3, 3: 12, 4: 1 };
+function seed() {
+  const T = (count, rows) => ({ count, next: count + 1, rows });
+  const sub = (id, m, p, start, status) => ({ subscription_id: id, member_id: m, plan_id: p, start_date: start, end_date: addMonths(start, PLAN_MONTHS[p]), status });
+  const at = (n, t) => `${day(n)} ${t}:00`;
+  return {
+    booked: { 3: 14, 7: 15, 11: 9, 18: 6, 21: 11, 24: 4 },
+    tables: {
+      member: T(48, [
+        { member_id: 41, name: 'Priya Naidu', phone: '9845012345', email: 'priya.naidu@example.com', dob: '1998-07-21', join_date: day(-340) },
+        { member_id: 42, name: 'Prithvi Rao', phone: '9900123456', email: 'prithvi.rao@example.com', dob: '1995-02-11', join_date: day(-264) },
+        { member_id: 43, name: 'Pritha Sen', phone: '9831045678', email: 'pritha.sen@example.com', dob: '2000-09-30', join_date: day(-577) },
+        { member_id: 44, name: 'Prithika M.', phone: '9789012345', email: 'prithika.m@example.com', dob: '2002-12-05', join_date: day(-170) },
+        { member_id: 45, name: 'Arjun Mehta', phone: '9820098765', email: 'arjun.mehta@example.com', dob: '1993-06-14', join_date: day(-127) },
+        { member_id: 46, name: 'Kavya Iyer', phone: '9741234560', email: 'kavya.iyer@example.com', dob: '1999-04-02', join_date: day(-76) },
+        { member_id: 47, name: 'Rohan Kulkarni', phone: '9860011223', email: 'rohan.k@example.com', dob: '1997-10-18', join_date: day(-37) },
+        { member_id: 48, name: 'Sneha Reddy', phone: '9701122334', email: 'sneha.reddy@example.com', dob: '2001-01-27', join_date: day(-24) },
+      ]),
+      plan: T(4, [
+        { plan_id: 1, name: 'Monthly', duration_months: 1, price: 1500, features: 'Gym floor' },
+        { plan_id: 2, name: 'Quarterly', duration_months: 3, price: 4000, features: 'Gym floor + 4 classes a month' },
+        { plan_id: 3, name: 'Annual', duration_months: 12, price: 14000, features: 'All access' },
+        { plan_id: 4, name: 'Trial', duration_months: 1, price: 0, features: 'Weekday gym floor' },
+      ]),
+      subscription: T(52, [
+        sub(46, 47, 4, day(-37), 'EXPIRED'),
+        sub(47, 43, 1, day(-577), 'EXPIRED'),
+        sub(48, 41, 3, day(-340), 'ACTIVE'),
+        sub(49, 42, 2, day(-52), 'ACTIVE'),
+        sub(50, 44, 1, day(-17), 'ACTIVE'),
+        sub(51, 45, 2, day(-35), 'ACTIVE'),
+        sub(52, 46, 1, day(-26), 'ACTIVE'),
+      ]),
+      payment: T(54, [
+        { payment_id: 50, subscription_id: 48, amount: 14000, method: 'CARD', paid_on: day(-340) },
+        { payment_id: 51, subscription_id: 49, amount: 4000, method: 'UPI', paid_on: day(-52) },
+        { payment_id: 52, subscription_id: 50, amount: 1500, method: 'CASH', paid_on: day(-17) },
+        { payment_id: 53, subscription_id: 51, amount: 4000, method: 'UPI', paid_on: day(-35) },
+        { payment_id: 54, subscription_id: 52, amount: 1500, method: 'UPI', paid_on: day(-26) },
+      ]),
+      renewal: T(9, [
+        { renewal_id: 7, subscription_id: 47, renewed_on: day(-142), new_end_date: day(-51) },
+        { renewal_id: 8, subscription_id: 48, renewed_on: day(-96), new_end_date: day(-5) },
+        { renewal_id: 9, subscription_id: 50, renewed_on: day(-61), new_end_date: day(30) },
+      ]),
+      trainer: T(6, [
+        { trainer_id: 1, name: 'Meera Joshi', specialization: 'Strength', shift: 'MORNING', phone: '9812345670' },
+        { trainer_id: 2, name: 'Karan Bhatia', specialization: 'Spin & cardio', shift: 'EVENING', phone: '9812345671' },
+        { trainer_id: 3, name: 'Anjali Desai', specialization: 'Yoga & Pilates', shift: 'MORNING', phone: '9812345672' },
+        { trainer_id: 4, name: 'Vikram Singh', specialization: 'HIIT', shift: 'EVENING', phone: '9812345673' },
+        { trainer_id: 5, name: 'Neha Kapoor', specialization: 'Dance fitness', shift: 'EVENING', phone: '9812345674' },
+        { trainer_id: 6, name: 'Rahul Verma', specialization: 'Mobility', shift: 'MORNING', phone: '9812345675' },
+      ]),
+      assessment: T(28, [
+        { assessment_id: 24, member_id: 41, trainer_id: 1, date: day(-62), weight: 61.5, bmi: 22.6, body_fat: 24.1 },
+        { assessment_id: 25, member_id: 42, trainer_id: 1, date: day(-48), weight: 78.2, bmi: 25.1, body_fat: 21.4 },
+        { assessment_id: 26, member_id: 44, trainer_id: 3, date: day(-15), weight: 55.0, bmi: 20.9, body_fat: 26.0 },
+        { assessment_id: 27, member_id: 45, trainer_id: 1, date: day(-30), weight: 84.6, bmi: 27.3, body_fat: 23.8 },
+        { assessment_id: 28, member_id: 41, trainer_id: 1, date: day(-5), weight: 60.2, bmi: 22.1, body_fat: 23.0 },
+      ]),
+      workout: T(14, [
+        { programme_id: 11, member_id: 41, title: 'Strength base', goal: 'Muscle gain', weeks: 8 },
+        { programme_id: 12, member_id: 42, title: 'Cut phase', goal: 'Fat loss', weeks: 6 },
+        { programme_id: 13, member_id: 45, title: 'Back to running', goal: 'Endurance', weeks: 10 },
+        { programme_id: 14, member_id: 46, title: 'Mobility reset', goal: 'Flexibility', weeks: 4 },
+      ]),
+      class: T(9, [
+        { class_id: 1, trainer_id: 2, title: 'Spin', capacity: 15, room: 'Studio A' },
+        { class_id: 2, trainer_id: 4, title: 'HIIT', capacity: 15, room: 'Studio B' },
+        { class_id: 4, trainer_id: 3, title: 'Yoga', capacity: 20, room: 'Studio C' },
+        { class_id: 6, trainer_id: 1, title: 'Strength', capacity: 12, room: 'Gym floor' },
+        { class_id: 7, trainer_id: 5, title: 'Zumba', capacity: 25, room: 'Studio A' },
+        { class_id: 9, trainer_id: 3, title: 'Pilates', capacity: 12, room: 'Studio C' },
+      ]),
+      schedule: T(24, [
+        { schedule_id: 3, class_id: 1, day: 'MON', start_time: '07:00:00', end_time: '07:45:00' },
+        { schedule_id: 7, class_id: 2, day: 'MON', start_time: '18:00:00', end_time: '18:45:00' },
+        { schedule_id: 11, class_id: 4, day: 'TUE', start_time: '07:00:00', end_time: '08:00:00' },
+        { schedule_id: 18, class_id: 6, day: 'WED', start_time: '19:00:00', end_time: '20:00:00' },
+        { schedule_id: 21, class_id: 7, day: 'THU', start_time: '18:30:00', end_time: '19:30:00' },
+        { schedule_id: 24, class_id: 9, day: 'SAT', start_time: '09:00:00', end_time: '10:00:00' },
+      ]),
+      registration: T(68, [
+        { registration_id: 61, member_id: 45, schedule_id: 3, booking_date: day(-6), status: 'BOOKED' },
+        { registration_id: 62, member_id: 44, schedule_id: 11, booking_date: day(-5), status: 'BOOKED' },
+        { registration_id: 63, member_id: 41, schedule_id: 7, booking_date: day(-4), status: 'BOOKED' },
+        { registration_id: 64, member_id: 46, schedule_id: 3, booking_date: day(-3), status: 'BOOKED' },
+        { registration_id: 65, member_id: 42, schedule_id: 3, booking_date: day(-2), status: 'BOOKED' },
+        { registration_id: 66, member_id: 41, schedule_id: 11, booking_date: day(-2), status: 'BOOKED' },
+        { registration_id: 67, member_id: 45, schedule_id: 7, booking_date: day(-1), status: 'BOOKED' },
+        { registration_id: 68, member_id: 42, schedule_id: 11, booking_date: day(-1), status: 'BOOKED' },
+      ]),
+      attendance: T(51, [
+        { attendance_id: 48, registration_id: 61, check_in: at(-6, '07:02'), check_out: at(-6, '07:48') },
+        { attendance_id: 49, registration_id: 62, check_in: at(-5, '06:58'), check_out: at(-5, '08:01') },
+        { attendance_id: 50, registration_id: 63, check_in: at(-4, '17:55'), check_out: at(-4, '18:47') },
+        { attendance_id: 51, registration_id: 64, check_in: at(-3, '07:05'), check_out: null },
+      ]),
+      equipment: T(12, [
+        { equipment_id: 8, name: 'Treadmill T-200', category: 'Cardio', purchase_date: '2023-04-12', status: 'ACTIVE' },
+        { equipment_id: 9, name: 'Spin bike #6', category: 'Cardio', purchase_date: '2022-11-03', status: 'OUT_OF_SERVICE' },
+        { equipment_id: 10, name: 'Cable crossover', category: 'Strength', purchase_date: '2024-01-20', status: 'ACTIVE' },
+        { equipment_id: 11, name: 'Rowing machine', category: 'Cardio', purchase_date: '2021-08-15', status: 'OUT_OF_SERVICE' },
+        { equipment_id: 12, name: 'Smith machine', category: 'Strength', purchase_date: '2024-06-02', status: 'ACTIVE' },
+      ]),
+      maintenance: T(18, [
+        { maintenance_id: 15, equipment_id: 9, date: day(-20), cost: 2400 },
+        { maintenance_id: 16, equipment_id: 11, date: day(-14), cost: 3800 },
+        { maintenance_id: 17, equipment_id: 8, date: day(-9), cost: 1200 },
+        { maintenance_id: 18, equipment_id: 9, date: day(-3), cost: 950 },
+      ]),
+    },
+  };
+}
+let db = seed();
+
+const memberById = id => db.tables.member.rows.find(m => m.member_id === id);
+const memberExists = id => Number.isInteger(id) && id >= 1 && id < db.tables.member.next;
+const scheduleById = id => db.tables.schedule.rows.find(s => s.schedule_id === id);
+const classById = id => db.tables.class.rows.find(c => c.class_id === id);
+const sessionLabel = s => { const c = s && classById(s.class_id); return c ? `${c.title} ${DAY[s.day]} ${s.start_time.slice(0, 5)}` : `schedule ${s && s.schedule_id}`; };
+const activeSub = (mid, on) => db.tables.subscription.rows.find(s => s.member_id === mid && s.status === 'ACTIVE' && s.start_date <= on && s.end_date >= on);
+const first = name => String(name || '').split(' ')[0];
+
+/* ---------- SQL text ---------- */
+const K = s => `<span class="k">${s}</span>`;
+const lit = (v, kind) => {
+  if (v === null || v === undefined) return { html: K('NULL'), len: 4 };
+  if (kind === 'num') return { html: `<span class="n">${esc(v)}</span>`, len: String(v).length };
+  if (kind === 'fn') return { html: `<span class="f">${esc(v)}</span>`, len: String(v).length };
+  const q = String(v).replace(/'/g, "''");
+  return { html: `<span class="s">'${esc(q)}'</span>`, len: q.length + 2 };
+};
+function insertSQL(table, cols, values) {
+  const total = values.reduce((a, v) => a + v.len + 2, 0);
+  const body = total <= 44 ? values.map(v => v.html).join(', ') : values.map(v => v.html).join(',\n   ');
+  return `${K('INSERT INTO')} <span class="t">${table}</span>\n  (${cols.map(c => `<span class="c">${c}</span>`).join(', ')})\n${K('VALUES')}\n  (${body});`;
+}
+const fkMsg = (child, cname, col, parent) => `Cannot add or update a child row: a foreign key constraint fails (\`gym_db\`.\`${child}\`, CONSTRAINT \`${cname}\` FOREIGN KEY (\`${col}\`) REFERENCES \`${parent}\` (\`${col}\`))`;
+
+/* ---------- planner: dry-runs a statement against the current data ---------- */
+const E = (code, state, msg) => ({ code, state, msg });
+const step = (on, tag, title, detail, ok, fx = {}, error = null, viva = null) => ({ on, tag, title, detail, ok: !!ok, fx, error, viva });
+function finish(plan) {
+  plan.failAt = plan.steps.findIndex(s => !s.ok);
+  plan.ok = plan.failAt === -1;
+  plan.error = plan.ok ? null : plan.steps[plan.failAt].error;
+  plan.writes.forEach(w => { w.step = plan.steps.findIndex(s => s.fx.write === w.table); });
+  plan.vivaText = (!plan.ok && plan.steps[plan.failAt].viva) || plan.viva;
+  Object.assign(plan, FLOWS[plan.flow]);
+  return plan;
+}
+
+function planMember(v) {
+  const M = db.tables.member, id = M.next;
+  const x = { name: nz(v.name), phone: nz(v.phone), email: nz(v.email), dob: nz(v.dob), join_date: nz(v.join_date) };
+  const nulls = ['name', 'phone', 'email', 'join_date'].filter(c => x[c] === null);
+  const long = x.phone !== null && x.phone.length > 10;
+  const dupE = x.email && M.rows.find(r => r.email.toLowerCase() === x.email.toLowerCase());
+  const dupP = x.phone && M.rows.find(r => r.phone === x.phone);
+  const s = step.bind(null, 'member');
+  return finish({
+    flow: 'member',
+    sql: insertSQL('Member', ['name', 'phone', 'email', 'dob', 'join_date'], [lit(x.name), lit(x.phone), lit(x.email), lit(x.dob), lit(x.join_date)]),
+    steps: [
+      s('NOT NULL', 'Required columns', nulls.length ? `${nulls[0]} is NULL — an empty box is sent as NULL` : 'name, phone, email and join_date all have values', !nulls.length,
+        { check: 'member', cols: ['name', 'phone', 'email', 'join_date'], failCols: nulls.slice(0, 1) },
+        E(1048, '23000', `Column '${nulls[0]}' cannot be null`), 'Empty form fields reach MySQL as NULL, so NOT NULL rejects the row before any index is touched.'),
+      s('TYPE', 'Values fit their columns', long ? `phone has ${x.phone.length} characters; CHAR(10) holds 10` : 'phone fits CHAR(10), dates are valid DATE values', !long,
+        { check: 'member', cols: ['phone', 'dob', 'join_date'], failCols: ['phone'] },
+        E(1406, '22001', "Data too long for column 'phone' at row 1"), 'Strict SQL mode rejects a value that does not fit its column instead of silently cutting it short.'),
+      s('UNIQUE', 'UNIQUE (email)', dupE ? `member_id ${dupE.member_id} (${dupE.name}) already uses this email` : 'index lookup finds no other row with this email', !dupE,
+        { read: ['member'], cols: ['email'] },
+        E(1062, '23000', `Duplicate entry '${x.email}' for key 'member.email'`)),
+      s('UNIQUE', 'UNIQUE (phone)', dupP ? `member_id ${dupP.member_id} (${dupP.name}) already uses this phone` : 'index lookup finds no other row with this phone', !dupP,
+        { read: ['member'], cols: ['phone'] },
+        E(1062, '23000', `Duplicate entry '${x.phone}' for key 'member.phone'`)),
+      s('PK', 'AUTO_INCREMENT', `assigns member_id = ${id}`, true, { check: 'member', cols: ['member_id'], fill: { member: { member_id: id } } }),
+      s('WRITE', 'Row stored in Member', `Member grows from ${M.count} to ${M.count + 1} rows`, true, { write: 'member' }),
+      s('COMMIT', 'Autocommit', 'the single statement commits on its own', true, {}),
+    ],
+    writes: [{ table: 'member', row: { member_id: id, ...x } }],
+    viva: 'UNIQUE(email) and UNIQUE(phone) are backed by indexes, so the duplicate check is an index lookup instead of a scan of every Member row.',
+    next: ok => ok && { label: `Next: subscribe ${first(x.name)} →`, go: () => goFlow('subscribe', { member_id: id }) },
+  });
+}
+
+function planSubscribe(v) {
+  const S = db.tables.subscription, P = db.tables.payment;
+  const mid = int(v.member_id), pid = int(v.plan_id);
+  const start = nz(v.start_date), end = nz(v.end_date);
+  const amount = int(v.amount), method = nz(v.method);
+  const sid = S.next, payId = P.next;
+  const member = memberById(mid), plan = db.tables.plan.rows.find(p => p.plan_id === pid);
+  const mExists = memberExists(mid);
+  const nullsS = [['member_id', mid], ['plan_id', pid], ['start_date', start], ['end_date', end]].filter(([, val]) => val === null).map(([c]) => c);
+  const datesOk = !!(start && end && end > start);
+  const nullP = amount === null ? 'amount' : (method === null ? 'method' : null);
+  const amountOk = amount !== null && amount >= 0;
+  const sub = step.bind(null, 'subscription'), pay = step.bind(null, 'payment');
+  const amountSql = amount === null ? lit(null) : lit(amount.toFixed(2), 'num');
+  const clash = (mid !== null && start && end) ? S.rows.find(r => r.member_id === mid && r.status === 'ACTIVE' && r.start_date < end && r.end_date > start) : null;
+  return finish({
+    flow: 'subscribe',
+    sql: `${K('START TRANSACTION')};\n` +
+      insertSQL('Subscription', ['member_id', 'plan_id', 'start_date', 'end_date'], [lit(mid, 'num'), lit(pid, 'num'), lit(start), lit(end)]) + '\n<span class="cm">-- BEFORE INSERT fires trg_no_overlap</span>\n' +
+      insertSQL('Payment', ['subscription_id', 'amount', 'method', 'paid_on'], [lit('LAST_INSERT_ID()', 'fn'), amountSql, lit(method), lit('CURDATE()', 'fn')]) +
+      `\n${K('COMMIT')};`,
+    steps: [
+      sub('BEGIN', 'START TRANSACTION', 'both INSERTs are kept together or not at all', true, {}),
+      sub('TRIGGER', 'trg_no_overlap', clash
+          ? `subscription_id ${clash.subscription_id} is ACTIVE from ${clash.start_date} to ${clash.end_date}; a new plan must start on or after ${clash.end_date}`
+          : (start && end ? `no ACTIVE subscription of ${member ? member.name : 'member_id ' + mid} overlaps ${start} → ${end}` : 'a date is NULL, so there is nothing to compare'), !clash,
+        { read: ['subscription', 'member'], edges: [['member', 'subscription']], cols: ['member_id', 'start_date', 'end_date'] },
+        E(1644, '45000', 'Member already has an ACTIVE subscription for these dates'),
+        'A CHECK cannot see other rows, so trg_no_overlap reads the member\'s ACTIVE subscriptions before the INSERT. A renewal is allowed when it starts on or after the current end_date.'),
+      sub('NOT NULL', 'Subscription: required columns', nullsS.length ? `${nullsS[0]} is NULL` : 'member_id, plan_id and both dates have values', !nullsS.length,
+        { check: 'subscription', cols: ['member_id', 'plan_id', 'start_date', 'end_date'], failCols: nullsS.slice(0, 1) },
+        E(1048, '23000', `Column '${nullsS[0]}' cannot be null`)),
+      sub('CHECK', 'chk_dates: end_date > start_date', datesOk ? `${end} is after ${start}` : `${end || 'NULL'} is not after ${start || 'NULL'}`, datesOk,
+        { check: 'subscription', cols: ['start_date', 'end_date'] },
+        E(3819, 'HY000', "Check constraint 'chk_dates' is violated."), 'chk_dates only needs the row\'s own columns, so a plain CHECK constraint is enough here.'),
+      sub('FK', 'member_id → Member', mExists ? `found member_id ${mid}${member ? ` (${member.name})` : ''}` : `no Member row has member_id ${mid}`, mExists,
+        { read: ['member'], edges: [['member', 'subscription']], cols: ['member_id'] },
+        E(1452, '23000', fkMsg('subscription', 'fk_sub_member', 'member_id', 'member')), 'The foreign key stops a subscription from pointing at a member who does not exist.'),
+      sub('FK', 'plan_id → Plan', plan ? `found plan_id ${pid} (${plan.name}, ${plan.duration_months} mo)` : `no Plan row has plan_id ${pid}`, !!plan,
+        { read: ['plan'], edges: [['plan', 'subscription']], cols: ['plan_id'] },
+        E(1452, '23000', fkMsg('subscription', 'fk_sub_plan', 'plan_id', 'plan'))),
+      sub('WRITE', 'Row stored in Subscription', `subscription_id = ${sid}, status = 'ACTIVE' from DEFAULT`, true,
+        { write: 'subscription', fill: { subscription: { subscription_id: sid, status: 'ACTIVE' }, payment: { subscription_id: sid } } }),
+      pay('NOT NULL', 'Payment: required columns', nullP ? `${nullP} is NULL` : 'amount, method and paid_on have values', !nullP,
+        { check: 'payment', cols: ['amount', 'method', 'paid_on'], failCols: nullP ? [nullP] : [], fill: { payment: { paid_on: day(0) } } },
+        E(1048, '23000', `Column '${nullP}' cannot be null`)),
+      pay('CHECK', 'chk_amount: amount ≥ 0', amountOk ? `${amount.toFixed(2)} is not negative` : `${amount === null ? 'NULL' : amount.toFixed(2)} is negative`, amountOk,
+        { check: 'payment', cols: ['amount'] },
+        E(3819, 'HY000', "Check constraint 'chk_amount' is violated."), 'Payment failed after Subscription was written. ROLLBACK removed both, so no subscription exists without its payment.'),
+      pay('FK', 'subscription_id → Subscription', `LAST_INSERT_ID() = ${sid}; this transaction can already see that row`, true,
+        { read: ['subscription'], edges: [['subscription', 'payment']], cols: ['subscription_id'] }),
+      pay('WRITE', 'Row stored in Payment', `payment_id = ${payId}, paid_on = CURDATE()`, true, { write: 'payment', fill: { payment: { payment_id: payId } } }),
+      pay('COMMIT', 'COMMIT', 'both rows become permanent together', true, {}),
+    ],
+    writes: [
+      { table: 'subscription', row: { subscription_id: sid, member_id: mid, plan_id: pid, start_date: start, end_date: end, status: 'ACTIVE' }, pre: { status: "DEFAULT 'ACTIVE'" } },
+      { table: 'payment', row: { payment_id: payId, subscription_id: sid, amount, method, paid_on: day(0) }, pre: { subscription_id: 'LAST_INSERT_ID()', paid_on: 'CURDATE()' } },
+    ],
+    viva: 'Subscription and Payment share one transaction. If any later statement fails, ROLLBACK also removes the rows the earlier statement wrote.',
+    next: ok => ok && { label: `Next: book a class for ${first(member ? member.name : 'them')} →`, go: () => goFlow('book', { member_id: mid }) },
+  });
+}
+
+function planBook(v) {
+  const R = db.tables.registration;
+  const mid = int(v.member_id), sch = int(v.schedule_id), date = nz(v.booking_date);
+  const member = memberById(mid), mExists = memberExists(mid);
+  const schedule = scheduleById(sch), cls = schedule && classById(schedule.class_id);
+  const booked = db.booked[sch] || 0, cap = cls ? cls.capacity : null;
+  const active = date ? activeSub(mid, date) : null;
+  const dup = R.rows.find(r => r.member_id === mid && r.schedule_id === sch && r.status !== 'CANCELLED');
+  const rid = R.next;
+  const who = member ? member.name : `member_id ${mid}`;
+  const capOk = cap === null || booked < cap;
+  const nulls = [['member_id', mid], ['schedule_id', sch], ['booking_date', date]].filter(([, val]) => val === null).map(([c]) => c);
+  const s = step.bind(null, 'registration');
+  return finish({
+    flow: 'book', schedule_id: sch,
+    sql: insertSQL('Registration', ['member_id', 'schedule_id', 'booking_date'], [lit(mid, 'num'), lit(sch, 'num'), lit(date)]) +
+      `\n<span class="cm">-- BEFORE INSERT fires trg_active_subscription</span>\n<span class="cm">-- and trg_class_capacity</span>`,
+    steps: [
+      s('TRIGGER', 'trg_active_subscription', active ? `subscription_id ${active.subscription_id} is ACTIVE until ${active.end_date}` : `${who} has no ACTIVE subscription on ${date || 'NULL'}`, !!active,
+        { read: ['subscription', 'member'], edges: [['member', 'subscription']], cols: ['member_id', 'booking_date'] },
+        E(1644, '45000', 'No active subscription for this member'), 'trg_active_subscription looks up Subscription by member_id at booking time, so a lapsed member cannot take a seat.'),
+      s('TRIGGER', 'trg_class_capacity', cls ? `${booked} of ${cap} seats booked for ${sessionLabel(schedule)}` : 'no matching Schedule row; capacity is NULL so the trigger lets it pass', capOk,
+        { read: ['class', 'schedule', 'registration'], edges: [['class', 'schedule'], ['schedule', 'registration']], cols: ['schedule_id'] },
+        E(1644, '45000', 'Class is full'), 'A CHECK only sees the row being inserted. Counting seats means reading other Registration rows, which needs a BEFORE INSERT trigger.'),
+      s('NOT NULL', 'Required columns', nulls.length ? `${nulls[0]} is NULL` : 'member_id, schedule_id and booking_date have values', !nulls.length,
+        { check: 'registration', cols: ['member_id', 'schedule_id', 'booking_date'], failCols: nulls.slice(0, 1) },
+        E(1048, '23000', `Column '${nulls[0]}' cannot be null`)),
+      s('FK', 'member_id → Member', mExists ? `found member_id ${mid} (${who})` : `no Member row has member_id ${mid}`, mExists,
+        { read: ['member'], edges: [['member', 'registration']], cols: ['member_id'] },
+        E(1452, '23000', fkMsg('registration', 'fk_reg_member', 'member_id', 'member'))),
+      s('FK', 'schedule_id → Schedule', schedule ? `found schedule_id ${sch} (${sessionLabel(schedule)})` : `no Schedule row has schedule_id ${sch}`, !!schedule,
+        { read: ['schedule'], edges: [['schedule', 'registration']], cols: ['schedule_id'] },
+        E(1452, '23000', fkMsg('registration', 'fk_reg_schedule', 'schedule_id', 'schedule'))),
+      s('UNIQUE', 'UNIQUE (schedule_id, member_id)', dup ? `registration_id ${dup.registration_id} already books ${first(who)} into this session` : 'no earlier booking for this member and session', !dup,
+        { read: ['registration'], cols: ['schedule_id', 'member_id'] },
+        E(1062, '23000', `Duplicate entry '${sch}-${mid}' for key 'registration.uq_sched_member'`), 'The composite UNIQUE index stops one member from taking two seats in the same session.'),
+      s('WRITE', 'Row stored in Registration', `registration_id = ${rid}, status = 'BOOKED'; seats ${booked} → ${booked + 1}${cap ? ` of ${cap}` : ''}`, true,
+        { write: 'registration', fill: { registration: { registration_id: rid, status: 'BOOKED' } } }),
+      s('COMMIT', 'Autocommit', 'the booking is permanent', true, {}),
+    ],
+    writes: [{ table: 'registration', row: { registration_id: rid, member_id: mid, schedule_id: sch, booking_date: date, status: 'BOOKED' }, pre: { status: "DEFAULT 'BOOKED'" } }],
+    viva: 'BEFORE INSERT triggers run first, then the foreign keys and the unique index are checked as the row is written.',
+    next: ok => ok && { label: `Next: check ${first(who)} in →`, go: () => goFlow('checkin', { registration_id: rid }) },
+  });
+}
+
+function planCheckin(v) {
+  const A = db.tables.attendance;
+  const rid = int(v.registration_id), cin = nz(v.check_in), cout = nz(v.check_out);
+  const reg = db.tables.registration.rows.find(r => r.registration_id === rid);
+  const regExists = Number.isInteger(rid) && rid >= 1 && rid < db.tables.registration.next;
+  const dup = A.rows.find(a => a.registration_id === rid);
+  const outOk = cout === null || (cin !== null && cout > cin);
+  const nulls = [['registration_id', rid], ['check_in', cin]].filter(([, val]) => val === null).map(([c]) => c);
+  const aid = A.next;
+  const who = reg ? (memberById(reg.member_id) || {}).name || `member_id ${reg.member_id}` : null;
+  const s = step.bind(null, 'attendance');
+  return finish({
+    flow: 'checkin',
+    sql: insertSQL('Attendance', ['registration_id', 'check_in', 'check_out'], [lit(rid, 'num'), lit(sqlDT(cin)), lit(sqlDT(cout))]),
+    steps: [
+      s('NOT NULL', 'Required columns', nulls.length ? `${nulls[0]} is NULL` : 'registration_id and check_in have values', !nulls.length,
+        { check: 'attendance', cols: ['registration_id', 'check_in'], failCols: nulls.slice(0, 1) },
+        E(1048, '23000', `Column '${nulls[0]}' cannot be null`)),
+      s('CHECK', 'chk_checkout: check_out > check_in', cout === null ? 'check_out is NULL, which is allowed until they leave' : (outOk ? `${showDT(cout)} is after ${showDT(cin)}` : `${showDT(cout)} is not after ${showDT(cin)}`), outOk,
+        { check: 'attendance', cols: ['check_in', 'check_out'] },
+        E(3819, 'HY000', "Check constraint 'chk_checkout' is violated.")),
+      s('FK', 'registration_id → Registration', reg ? `found registration_id ${rid} (${who}, ${sessionLabel(scheduleById(reg.schedule_id))})` : (regExists ? `found registration_id ${rid}` : `no Registration row has registration_id ${rid}`), regExists,
+        { read: ['registration'], edges: [['registration', 'attendance']], cols: ['registration_id'] },
+        E(1452, '23000', fkMsg('attendance', 'fk_att_registration', 'registration_id', 'registration'))),
+      s('UNIQUE', 'UNIQUE (registration_id) · 1:1', dup ? `attendance_id ${dup.attendance_id} already records this booking` : 'first attendance row for this booking', !dup,
+        { read: ['attendance'], cols: ['registration_id'] },
+        E(1062, '23000', `Duplicate entry '${rid}' for key 'attendance.registration_id'`)),
+      s('WRITE', 'Row stored in Attendance', `attendance_id = ${aid}`, true, { write: 'attendance', fill: { attendance: { attendance_id: aid } } }),
+      s('COMMIT', 'Autocommit', 'the visit is recorded', true, {}),
+    ],
+    writes: [{ table: 'attendance', row: { attendance_id: aid, registration_id: rid, check_in: sqlDT(cin), check_out: sqlDT(cout) } }],
+    viva: 'UNIQUE(registration_id) turns the 1:N foreign key into a 1:1 link, so each booking has at most one Attendance row.',
+    next: ok => ok && { label: 'Register another member →', go: () => goFlow('member') },
+  });
+}
+
+const PLANNERS = { member: planMember, subscribe: planSubscribe, book: planBook, checkin: planCheckin };
+
+/* ---------- ER model ---------- */
+const NODES = {
+  plan: { x: 125, y: 250 }, subscription: { x: 445, y: 250 }, member: { x: 775, y: 250, w: 250, h: 90 },
+  trainer: { x: 1030, y: 55 }, class: { x: 1350, y: 55 }, equipment: { x: 1670, y: 55 },
+  schedule: { x: 1350, y: 250 }, maintenance: { x: 1670, y: 250 },
+  payment: { x: 125, y: 430 }, assessment: { x: 775, y: 430 }, registration: { x: 1350, y: 430 },
+  renewal: { x: 125, y: 590 }, workout: { x: 775, y: 590, w: 290 }, attendance: { x: 1350, y: 590 },
+};
+const EDGES = [
+  ['plan', 'subscription', 'M240 250H330', [285, 250]],
+  ['member', 'subscription', 'M650 250H560', [605, 250]],
+  ['subscription', 'payment', 'M400 285V430H240', [400, 358]],
+  ['subscription', 'renewal', 'M500 285V590H240', [500, 520]],
+  ['member', 'workout', 'M650 278H600V590H630', [600, 470]],
+  ['member', 'assessment', 'M775 295V395', [775, 345]],
+  ['trainer', 'assessment', 'M940 90V430H890', [940, 170]],
+  'bridge',
+  ['member', 'registration', 'M900 268H1180V430H1235', [1060, 268]],
+  ['trainer', 'class', 'M1145 55H1235', [1190, 55]],
+  ['class', 'schedule', 'M1350 90V215', [1350, 152]],
+  ['schedule', 'registration', 'M1350 285V395', [1350, 340]],
+  ['registration', 'attendance', 'M1350 465V555', [1350, 510], '1:1'],
+  ['equipment', 'maintenance', 'M1670 90V215', [1670, 152]],
+];
+const SVGNS = 'http://www.w3.org/2000/svg';
+const svgEl = (tag, attrs, parent) => { const n = document.createElementNS(SVGNS, tag); Object.entries(attrs).forEach(([k, v]) => n.setAttribute(k, v)); if (parent) parent.appendChild(n); return n; };
+const er = $('#er');
+const nodeEls = {};
+const shown = {};
+const size = k => ({ w: NODES[k].w || 230, h: NODES[k].h || 70 });
+
+function buildER() {
+  const gE = $('#erEdges'), gP = $('#erPills'), gN = $('#erNodes');
+  EDGES.forEach(e => {
+    if (e === 'bridge') { svgEl('path', { class: 'bridge', d: 'M940 256V280' }, gE); return; }
+    const [a, b, d, [px, py], card = '1:N'] = e;
+    const g = svgEl('g', { class: 'edge', 'data-e': `${a}>${b}` }, gE);
+    svgEl('path', { class: 'line', d }, g);
+    svgEl('path', { class: 'comet', d }, g);
+    const pg = svgEl('g', { class: 'pill' + (card === '1:1' ? ' one' : ''), 'data-e': `${a}>${b}` }, gP);
+    svgEl('rect', { x: px - 27, y: py - 15, width: 54, height: 30, rx: 15 }, pg);
+    svgEl('text', { x: px, y: py + 6, 'text-anchor': 'middle' }, pg).textContent = card;
+  });
+  Object.keys(NODES).forEach(k => {
+    const n = NODES[k], { w, h } = size(k), x = n.x - w / 2, y = n.y - h / 2;
+    const cls = ['node', k === 'member' ? 'major' : '', SCHEMA[k].assoc ? 'assoc' : '', k === 'workout' ? 'long' : ''].join(' ').trim();
+    const g = svgEl('g', { class: cls, 'data-k': k, tabindex: '0', role: 'button' }, gN);
+    svgEl('rect', { class: 'box', x, y, width: w, height: h, rx: 14 }, g);
+    if (SCHEMA[k].assoc) svgEl('rect', { class: 'inner', x: x + 7, y: y + 7, width: w - 14, height: h - 14, rx: 9 }, g);
+    svgEl('text', { class: 'name', x: n.x, y: n.y + (k === 'member' ? 2 : -5), 'text-anchor': 'middle' }, g).textContent = SCHEMA[k].label;
+    const ct = svgEl('text', { class: 'count', x: n.x, y: n.y + (k === 'member' ? 31 : 23), 'text-anchor': 'middle' }, g);
+    nodeEls[k] = { g, ct, box: g.querySelector('.box') };
+  });
+  syncCounts();
+}
+const node = k => nodeEls[k].g;
+const edgeEl = (a, b) => $(`#erEdges .edge[data-e="${a}>${b}"]`);
+const pillEl = (a, b) => $(`#erPills .pill[data-e="${a}>${b}"]`);
+function setCount(k, n) {
+  shown[k] = n;
+  nodeEls[k].ct.textContent = `${n} rows`;
+  nodeEls[k].g.setAttribute('aria-label', `${SCHEMA[k].label} table, ${n} rows`);
+}
+function syncCounts() { Object.keys(NODES).forEach(k => setCount(k, db.tables[k].count)); }
+function resetER() {
+  er.classList.remove('running');
+  $$('.node', er).forEach(n => n.classList.remove('is-target', 'is-read', 'is-touched', 'is-ok', 'is-fail', 'hit'));
+  $$('.edge, .pill', er).forEach(n => n.classList.remove('is-on', 'is-fail'));
+  syncCounts();
+}
+function pulse(k) {
+  const g = node(k); g.classList.remove('hit'); void g.getBBox(); g.classList.add('hit');
+  setTimeout(() => g.classList.remove('hit'), 600);
+}
+function floatTag(k, text, dir) {
+  if (calm()) return;
+  const n = NODES[k], { w, h } = size(k);
+  const t = svgEl('text', { class: `float ${dir}`, x: n.x + w / 2 - 6, y: n.y - h / 2 - 10, 'text-anchor': 'end' }, $('#erFx'));
+  t.textContent = text;
+  runAnim(t, [{ transform: 'translateY(8px)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1, offset: .2 }, { transform: 'translateY(-16px)', opacity: 0 }], { duration: 1500, easing: 'ease-out' })
+    .finished.then(() => t.remove(), () => t.remove());
+}
+function bump(k, d) { setCount(k, shown[k] + d); floatTag(k, d > 0 ? '+1' : '−1', d > 0 ? 'up' : 'down'); }
+function comet(e) {
+  const c = e.querySelector('.comet');
+  if (calm() || !c.animate) return Promise.resolve();
+  const L = c.getTotalLength(), seg = Math.min(80, L * .5);
+  c.style.strokeDasharray = `${seg} ${L + seg}`;
+  c.style.opacity = 1;
+  return runAnim(c, [{ strokeDashoffset: seg }, { strokeDashoffset: -L }], { duration: clamp(L * 1.4, 420, 900), easing: 'cubic-bezier(.4,0,.2,1)' })
+    .finished.then(() => { c.style.opacity = 0; }, () => { c.style.opacity = 0; });
+}
+function applyFx(s) {
+  const fx = s.fx || {}, waits = [];
+  (fx.read || []).forEach(k => node(k).classList.add('is-read', 'is-touched'));
+  (fx.edges || []).forEach(([a, b]) => {
+    const e = edgeEl(a, b); if (!e) return;
+    e.classList.add('is-on'); const p = pillEl(a, b); if (p) p.classList.add('is-on');
+    node(a).classList.add('is-touched'); node(b).classList.add('is-touched');
+    waits.push(comet(e));
+  });
+  if (fx.check) pulse(fx.check);
+  return Promise.all(waits);
+}
+function clearReads() { $$('.node.is-read', er).forEach(n => n.classList.remove('is-read')); }
+
+/* ---------- inspector ---------- */
+let inspKey = 'member', lastRun = null, lastMarks = {};
+function fmtCell(col, v, ghostPk) {
+  const [name, type] = col;
+  if (ghostPk) return '<td class="num">—</td>';
+  if (v === null || v === undefined) return '<td><span class="null">NULL</span></td>';
+  if (type === 'ENUM' && name !== 'method') {
+    const tone = { ACTIVE: 'ok', EXPIRED: 'bad', CANCELLED: 'dim', BOOKED: 'info', OUT_OF_SERVICE: 'bad', MORNING: 'dim', EVENING: 'dim' }[v] || 'dim';
+    return `<td><span class="badge ${tone}">${esc(v)}</span></td>`;
+  }
+  if (type === 'DECIMAL') return `<td class="num">${Number(v).toFixed(2)}</td>`;
+  if (type === 'INT') return `<td class="num">${esc(v)}</td>`;
+  return `<td>${esc(v)}</td>`;
+}
+function renderInspector(k) {
+  inspKey = k;
+  const meta = SCHEMA[k], T = db.tables[k];
+  const list = [...new Set([...(lastRun ? lastRun.tables : []), k])];
+  $('#inspTabs').innerHTML = '<span class="lbl">Table</span>' + list.map(t => `<button type="button" data-t="${t}" aria-pressed="${t === k}">${SCHEMA[t].label}</button>`).join('');
+  const rows = T.rows.slice().sort((a, b) => a[meta.pk] - b[meta.pk]).slice(-6);
+  const mark = lastMarks[k] || {};
+  const head = '<thead><tr>' + meta.cols.map(([n, type, key]) => {
+    const tag = n === meta.pk ? 'PK' : (key || '');
+    return `<th class="${n === meta.pk ? 'pk' : ''}${type === 'INT' || type === 'DECIMAL' ? ' num' : ''}"><span>${n}</span>${tag ? `<small>${tag}</small>` : ''}</th>`;
+  }).join('') + '<th aria-label="Row status"></th></tr></thead>';
+  const body = rows.map(r => {
+    const isNew = mark.newId !== undefined && r[meta.pk] === mark.newId;
+    return `<tr class="${isNew ? 'new' : ''}">${meta.cols.map(c => fmtCell(c, r[c[0]])).join('')}<td class="flag">${isNew ? '<span class="badge ok">new</span>' : ''}</td></tr>`;
+  }).join('');
+  const ghost = mark.ghost ? `<tr class="ghost">${meta.cols.map(c => fmtCell(c, mark.ghost.row[c[0]], c[0] === meta.pk && mark.ghost.noId)).join('')}<td class="flag"><span class="badge bad">${mark.ghost.label}</span></td></tr>` : '';
+  $('#inspTable').innerHTML = head + '<tbody>' + body + ghost + '</tbody>';
+  $('#inspMeta').textContent = `${T.count} rows · latest ${rows.length} shown`;
+  $$('.node', er).forEach(n => n.classList.toggle('is-selected', n.dataset.k === k));
+}
+
+/* ---------- form face ---------- */
+const forms = { member: $('#form-member'), subscribe: $('#form-subscribe'), book: $('#form-book'), checkin: $('#form-checkin'), crud: $('#form-crud') };
+let flow = 'member';
+const readForm = f => { const v = {}; $$('input, select', f).forEach(el => { if (el.name) v[el.name] = el.value; }); return v; };
+const currentPlan = () => PLANNERS[flow](readForm(forms[flow]));
+
+function stepsHTML(plan, mode) {
+  return plan.steps.map((s, i) => {
+    let state = 'pending';
+    if (mode === 'predict') state = plan.ok || i < plan.failAt ? 'ok' : (i === plan.failAt ? 'fail' : 'skip');
+    const kind = s.tag.toLowerCase().replace(/[^a-z]+/g, '-');
+    return `<li class="step" data-state="${state}" data-kind="${kind}"><span class="mark" aria-hidden="true"></span><div class="st"><span class="tag">${esc(s.tag)}</span><b>${esc(s.title)}</b><span class="detail">${esc(s.detail)}</span></div></li>`;
+  }).join('');
+}
+function updatePreview() {
+  if (flow === 'crud') { crudPreview(); return; }
+  const plan = currentPlan();
+  $('#pvFile').textContent = plan.file;
+  $('#pvTag').textContent = plan.tag;
+  $('#pvSql').innerHTML = plan.sql;
+  $('#pvSteps').innerHTML = stepsHTML(plan, 'predict');
+  const vd = $('#pvVerdict');
+  vd.className = 'verdict ' + (plan.ok ? 'ok' : 'fail');
+  vd.textContent = plan.ok ? 'Predicted: commits' : `Predicted: ERROR ${plan.error.code}`;
+}
+
+const EXAMPLES = [
+  { name: 'Ananya Sharma', phone: '9876543210', email: 'ananya.sharma@example.com', dob: '2001-03-14' },
+  { name: 'Ishaan Kapoor', phone: '9811122233', email: 'ishaan.kapoor@example.com', dob: '1996-11-02' },
+  { name: 'Diya Menon', phone: '9744455566', email: 'diya.menon@example.com', dob: '2003-05-09' },
+  { name: 'Kabir Shah', phone: '9922233344', email: 'kabir.shah@example.com', dob: '1994-08-23' },
+  { name: 'Meher Gill', phone: '9888877766', email: 'meher.gill@example.com', dob: '2000-02-17' },
+];
+function nextExample() {
+  const used = new Set(db.tables.member.rows.map(r => r.email));
+  const ex = EXAMPLES.find(e => !used.has(e.email));
+  if (ex) return ex;
+  const n = db.tables.member.next;
+  return { name: `Guest Member ${n}`, phone: String(9000000000 + n * 7919).slice(0, 10), email: `guest${n}@example.com`, dob: '1999-01-01' };
+}
+function setOptions(sel, opts, value) {
+  sel.innerHTML = opts.map(o => `<option value="${o.v}">${esc(o.t)}</option>`).join('');
+  if (value !== undefined && value !== null && opts.some(o => String(o.v) === String(value))) sel.value = String(value);
+}
+let freshMember = null;
+function currentSub(mid) {
+  const today = day(0);
+  const subs = db.tables.subscription.rows.filter(x => x.member_id === mid);
+  const now = subs.find(x => x.status === 'ACTIVE' && x.start_date <= today && x.end_date >= today);
+  const latest = subs.slice().sort((a, b) => b.end_date.localeCompare(a.end_date))[0] || null;
+  const queued = subs.filter(x => x.status === 'ACTIVE' && x.start_date > today && x !== (now || latest)).length;
+  return { sub: now || latest, queued };
+}
+function renderMembers() {
+  const today = day(0);
+  const cols = [['member_id', 'PK'], ['name'], ['phone', 'UQ'], ['email', 'UQ'], ['dob'], ['join_date'], ['plan'], ['status'], ['start_date'], ['end_date']];
+  const head = '<thead><tr>' + cols.map(([c, k]) => `<th class="${k === 'PK' ? 'pk num' : ''}"><span>${c}</span>${k ? `<small>${k}</small>` : ''}</th>`).join('') + '</tr></thead>';
+  const body = db.tables.member.rows.slice().sort((a, b) => a.member_id - b.member_id).map(m => {
+    const { sub, queued } = currentSub(m.member_id);
+    const plan = sub && db.tables.plan.rows.find(p => p.plan_id === sub.plan_id);
+    let status = '<span class="badge dim">NO PLAN</span>';
+    if (sub) {
+      const st = sub.status === 'ACTIVE' && sub.end_date < today ? 'EXPIRED' : (sub.status === 'ACTIVE' && sub.start_date > today ? 'UPCOMING' : sub.status);
+      status = `<span class="badge ${st === 'ACTIVE' ? 'ok' : st === 'UPCOMING' ? 'info' : 'bad'}">${st}</span>`;
+    }
+    const planCell = plan ? `${esc(plan.name)}${queued ? `<span class="note">+${queued} renewal</span>` : ''}` : '<span class="null">NULL</span>';
+    return `<tr class="${m.member_id === freshMember ? 'fresh' : ''}"><td class="num">${m.member_id}</td><td>${esc(m.name || '')}</td><td>${esc(m.phone || '')}</td><td>${esc(m.email || '')}</td><td>${m.dob ? esc(m.dob) : '<span class="null">NULL</span>'}</td><td>${esc(m.join_date || '')}</td><td>${planCell}</td><td>${status}</td><td>${sub ? esc(sub.start_date) : '<span class="null">NULL</span>'}</td><td>${sub ? esc(sub.end_date) : '<span class="null">NULL</span>'}</td></tr>`;
+  }).join('');
+  $('#membersTable').innerHTML = head + '<tbody>' + body + '</tbody>';
+  const listed = db.tables.member.rows.length;
+  $('#membersCount').textContent = `${db.tables.member.count} members in total · ${listed} listed`;
+}
+function fillMembers(sel, value) {
+  const keep = value ?? sel.value;
+  const opts = db.tables.member.rows.slice().sort((a, b) => a.member_id - b.member_id).map(m => {
+    const a = sel.id === 's-member' ? activeSub(m.member_id, day(0)) : null;
+    return { v: m.member_id, t: `${m.member_id} · ${m.name}${a ? ` · ACTIVE until ${a.end_date}` : ''}` };
+  });
+  if (keep && !opts.some(o => String(o.v) === String(keep))) opts.push({ v: keep, t: `${keep} · (no such member)` });
+  setOptions(sel, opts, keep);
+}
+function fillPlans() {
+  setOptions($('#s-plan'), db.tables.plan.rows.map(p => ({ v: p.plan_id, t: `${p.name} · ${p.duration_months} mo · ${inr(p.price)}` })), $('#s-plan').value || 2);
+}
+function fillSchedules(value) {
+  const keep = value ?? $('#b-sched').value;
+  const opts = db.tables.schedule.rows.filter(s => db.booked[s.schedule_id] !== undefined).slice(0, 4).map(s => {
+    const c = classById(s.class_id), b = db.booked[s.schedule_id];
+    return { v: s.schedule_id, t: `${sessionLabel(s)} · ${b}/${c.capacity} booked${b >= c.capacity ? ' · full' : ''}` };
+  });
+  setOptions($('#b-sched'), opts, keep);
+}
+function fillRegs(value) {
+  const keep = value ?? $('#c-reg').value;
+  const done = new Set(db.tables.attendance.rows.map(a => a.registration_id));
+  const opts = db.tables.registration.rows.slice().sort((a, b) => a.registration_id - b.registration_id).map(r => {
+    const m = memberById(r.member_id);
+    return { v: r.registration_id, t: `#${r.registration_id} · ${m ? m.name : 'member ' + r.member_id} · ${sessionLabel(scheduleById(r.schedule_id))}${done.has(r.registration_id) ? ' · checked in' : ''}` };
+  });
+  setOptions($('#c-reg'), opts, keep);
+}
+function syncPlanFields() {
+  const p = db.tables.plan.rows.find(x => x.plan_id === Number($('#s-plan').value));
+  const start = $('#s-start').value;
+  if (p && start) $('#s-end').value = addMonths(start, p.duration_months);
+  if (p) $('#s-amount').value = p.price.toFixed(2);
+}
+function populate(f, p = {}) {
+  if (f === 'crud') { crud.highlight = null; crud.status = null; buildCrudForm(); return; }
+  if (f === 'member') {
+    const ex = nextExample();
+    $('#m-name').value = ex.name; $('#m-phone').value = ex.phone; $('#m-email').value = ex.email; $('#m-dob').value = ex.dob; $('#m-join').value = day(0);
+  }
+  if (f === 'subscribe') {
+    const lapsed = db.tables.member.rows.slice().reverse().find(m => !activeSub(m.member_id, day(0)));
+    fillMembers($('#s-member'), p.member_id ?? (lapsed ? lapsed.member_id : 48));
+    fillPlans(); $('#s-plan').value = String(p.plan_id ?? 2);
+    $('#s-start').value = day(0); $('#s-method').value = 'UPI';
+    syncPlanFields();
+  }
+  if (f === 'book') {
+    fillMembers($('#b-member'), p.member_id ?? 42);
+    fillSchedules(p.schedule_id ?? 18);
+    $('#b-date').value = day(0);
+  }
+  if (f === 'checkin') {
+    const done = new Set(db.tables.attendance.rows.map(a => a.registration_id));
+    const open = db.tables.registration.rows.find(r => !done.has(r.registration_id));
+    fillRegs(p.registration_id ?? (open ? open.registration_id : 65));
+    $('#c-in').value = nowDT(0); $('#c-out').value = nowDT(60);
+  }
+}
+function refreshSelects() {
+  fillMembers($('#s-member')); fillMembers($('#b-member')); fillSchedules(); fillRegs();
+  if (flow !== 'crud') buildCrudForm();
+}
+function setFlow(f) {
+  flow = f;
+  $$('.tab').forEach(t => { const on = t.dataset.flow === f; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+  Object.entries(forms).forEach(([k, el]) => { el.hidden = k !== f; });
+  updatePreview();
+}
+function flash(...els) {
+  els.forEach(el => { el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 900); });
+}
+const TRIES = {
+  'dup-email': () => { $('#m-email').value = 'priya.naidu@example.com'; flash($('#m-email')); },
+  'no-name': () => { $('#m-name').value = ''; flash($('#m-name')); },
+  'long-phone': () => { $('#m-phone').value = '98765432101'; flash($('#m-phone')); },
+  'neg-amount': () => { $('#s-amount').value = '-500.00'; flash($('#s-amount')); },
+  'bad-dates': () => { $('#s-end').value = addDays($('#s-start').value || day(0), -1); flash($('#s-end')); },
+  'no-member': () => { fillMembers($('#s-member'), 999); flash($('#s-member')); },
+  'has-sub': () => { fillMembers($('#s-member'), 41); $('#s-start').value = day(0); syncPlanFields(); flash($('#s-member'), $('#s-start')); },
+  'full': () => { fillMembers($('#b-member'), 46); fillSchedules(7); flash($('#b-member'), $('#b-sched')); },
+  'no-sub': () => { fillMembers($('#b-member'), 43); fillSchedules(11); flash($('#b-member'), $('#b-sched')); },
+  'dup-book': () => { fillMembers($('#b-member'), 41); fillSchedules(11); flash($('#b-member'), $('#b-sched')); },
+  'dup-checkin': () => { fillRegs(61); flash($('#c-reg')); },
+  'bad-out': () => { const cin = $('#c-in').value || nowDT(0); $('#c-in').value = cin; $('#c-out').value = shiftDT(cin, -30); flash($('#c-out')); },
+};
+
+/* ---------- face switching ---------- */
+const consoleEl = $('#console'), faces = $('#faces'), faceForm = $('#faceForm'), faceDb = $('#faceDb');
+const ease = 'cubic-bezier(.2,.7,.2,1)';
+async function swapFace(name) {
+  const to = name === 'db' ? faceDb : faceForm, from = name === 'db' ? faceForm : faceDb;
+  if (!to.hidden) return;
+  const h0 = faces.offsetHeight;
+  faces.style.height = h0 + 'px';
+  faces.classList.add('animating');
+  from.hidden = true; to.hidden = false;
+  consoleEl.dataset.face = name;
+  $('#browseBtn').hidden = name === 'db';
+  const h1 = to.offsetHeight;
+  if (!calm() && faces.animate) {
+    uiAnim(to, [{ opacity: 0, filter: 'blur(8px)' }, { opacity: 1, filter: 'blur(0)' }], { duration: 520, easing: ease });
+    await uiAnim(faces, [{ height: h0 + 'px' }, { height: h1 + 'px' }], { duration: 520, easing: ease }).finished.catch(() => {});
+  }
+  faces.style.height = '';
+  faces.classList.remove('animating');
+}
+async function bringConsoleIntoView() {
+  const top = consoleEl.getBoundingClientRect().top;
+  if (top >= 0 && top <= window.innerHeight * .22) return;
+  window.scrollTo({ top: window.scrollY + top - 12, behavior: calm() ? 'auto' : 'smooth' });
+  if (calm()) return;
+  await new Promise(res => {
+    const t = setTimeout(res, 750);
+    window.addEventListener('scrollend', () => { clearTimeout(t); res(); }, { once: true });
+  });
+}
+function chipSources(form, plan) {
+  return $$('input, select', form).filter(el => el.name && el.offsetParent !== null && el.value.trim() !== '').map(el => ({
+    rect: el.getBoundingClientRect(), table: el.dataset.to || plan.tables[0], col: el.name,
+  }));
+}
+function nodeCenter(k) { const r = nodeEls[k].box.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+function centerOn(k) {
+  const sc = $('#erScroll');
+  if (sc.scrollWidth <= sc.clientWidth) return;
+  const r = nodeEls[k].box.getBoundingClientRect(), s = sc.getBoundingClientRect();
+  sc.scrollLeft += (r.left + r.width / 2) - (s.left + s.width / 2);
+}
+
+/* ---------- the row being inserted: one labelled cell per column ---------- */
+const colDef = (t, c) => SCHEMA[t].cols.find(x => x[0] === c) || [c, ''];
+const colKey = (t, c) => (c === SCHEMA[t].pk ? 'PK' : (colDef(t, c)[2] || ''));
+function cellHTML(t, c, v) {
+  if (v === null || v === undefined) return lit(null).html;
+  const type = colDef(t, c)[1];
+  if (type === 'DECIMAL') return lit(Number(v).toFixed(2), 'num').html;
+  if (type === 'INT') return lit(v, 'num').html;
+  return lit(v).html;
+}
+const incRow = t => $(`#incRows .inc-row[data-t="${t}"]`);
+const cellEl = (t, c) => $(`#incRows .inc-row[data-t="${t}"] .cell[data-c="${c}"]`);
+function renderIncoming(plan, awaiting) {
+  const multi = plan.writes.length > 1;
+  $('#incRows').innerHTML = plan.writes.map((w, i) => {
+    const meta = SCHEMA[w.table];
+    const cells = meta.cols.map(([c]) => {
+      const pre = c === meta.pk ? 'AUTO_INCREMENT' : (w.pre && w.pre[c]);
+      const cls = ['cell', pre ? 'pending' : '', awaiting.has(`${w.table}.${c}`) ? 'await' : ''].filter(Boolean).join(' ');
+      const key = colKey(w.table, c);
+      return `<div class="${cls}" data-c="${c}"><span class="cl"><span>${c}</span>${key ? `<em>${key}</em>` : ''}<i aria-hidden="true"></i></span><span class="cv">${pre ? esc(pre) : cellHTML(w.table, c, w.row[c])}</span></div>`;
+    }).join('');
+    const label = multi ? (i === 0 ? '1st INSERT' : '2nd INSERT') : 'INSERT';
+    return `<div class="inc-row" data-t="${w.table}"><div class="inc-name"><i aria-hidden="true">→</i><span>${meta.label}<small>${label}</small></span></div><div class="cells">${cells}</div></div>`;
+  }).join('');
+  $('#incoming').hidden = false;
+}
+function setIncStatus(text, tone) { const el = $('#incStatus'); el.textContent = text; el.className = 'inc-status' + (tone ? ' ' + tone : ''); }
+function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+function markCells(t, cols, state) {
+  (cols || []).forEach(c => {
+    const el = cellEl(t, c); if (!el) return;
+    el.classList.remove('checking', 'ok', 'fail');
+    if (state) el.classList.add(state);
+  });
+}
+function fillCells(fill) {
+  Object.entries(fill || {}).forEach(([t, cols]) => Object.entries(cols).forEach(([c, v]) => {
+    const el = cellEl(t, c); if (!el) return;
+    el.querySelector('.cv').innerHTML = cellHTML(t, c, v);
+    el.classList.remove('pending', 'await');
+    el.classList.add('filled');
+    pop(el);
+  }));
+}
+function setRowTag(t, text, cls) {
+  const row = incRow(t); if (!row) return;
+  row.querySelector('small').textContent = text;
+  if (cls) row.classList.add(cls);
+}
+function flyChips(sources) {
+  const reveal = s => { const el = cellEl(s.table, s.col); if (el) { el.classList.remove('await'); pop(el); } };
+  if (calm() || !sources.length || !document.body.animate) { sources.forEach(reveal); return Promise.resolve(); }
+  const layer = document.createElement('div'); layer.className = 'chip-layer'; layer.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(layer);
+  const runs = sources.map((s, i) => {
+    const cell = cellEl(s.table, s.col);
+    if (!cell) return Promise.resolve();
+    const cv = cell.querySelector('.cv');
+    const chip = document.createElement('div'); chip.className = 'fly-chip'; chip.textContent = cv.textContent; layer.appendChild(chip);
+    const w = chip.offsetWidth, h = chip.offsetHeight, tr = cv.getBoundingClientRect();
+    const x0 = s.rect.left + 8, y0 = s.rect.top + s.rect.height / 2 - h / 2;
+    const x1 = tr.left - 10, y1 = tr.top + tr.height / 2 - h / 2;
+    const mx = (x0 + x1) / 2, my = Math.min(y0, y1) - 60;
+    return runAnim(chip, [
+      { transform: `translate(${x0}px,${y0}px)`, opacity: 0 },
+      { transform: `translate(${x0}px,${y0 - 8}px)`, opacity: 1, offset: .12 },
+      { transform: `translate(${mx}px,${my}px)`, opacity: 1, offset: .55 },
+      { transform: `translate(${x1}px,${y1}px)`, opacity: 1 },
+    ], { duration: 900, delay: i * 110, easing: 'cubic-bezier(.45,.05,.25,1)', fill: 'both' }).finished
+      .then(() => { reveal(s); chip.remove(); }, () => { reveal(s); chip.remove(); });
+  });
+  return Promise.all(runs).then(() => layer.remove());
+}
+function flyRow(t) {
+  const cells = incRow(t) && incRow(t).querySelector('.cells');
+  if (calm() || !cells || !document.body.animate) return Promise.resolve();
+  const r = cells.getBoundingClientRect(), tgt = nodeCenter(t);
+  const ghost = cells.cloneNode(true);
+  ghost.classList.add('fly-row'); ghost.setAttribute('aria-hidden', 'true');
+  Object.assign(ghost.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' });
+  document.body.appendChild(ghost);
+  const dx = tgt.x - (r.left + r.width / 2), dy = tgt.y - (r.top + r.height / 2);
+  return runAnim(ghost, [
+    { transform: 'translate(0,0) scale(1)', opacity: 1 },
+    { transform: `translate(${dx * .45}px,${dy * .45 - 24}px) scale(.55)`, opacity: 1, offset: .5 },
+    { transform: `translate(${dx}px,${dy}px) scale(.1)`, opacity: 0 },
+  ], { duration: 900, easing: 'cubic-bezier(.45,.05,.25,1)', fill: 'forwards' }).finished
+    .then(() => ghost.remove(), () => ghost.remove());
+}
+
+/* ---------- running a statement ---------- */
+let busy = false;
+function setBusy(on) {
+  busy = on;
+  $$('.run-btn, #backBtn, #nextBtn, #browseBtn, #resetBtn').forEach(b => { b.disabled = on; });
+  $('#runCtrl').hidden = !on;
+  if (!on) { paused = false; stepMode = false; frozen = []; }
+  renderPauseUI();
+}
+function renderPauseUI() {
+  const pb = $('#pauseBtn');
+  pb.setAttribute('aria-pressed', String(paused));
+  pb.querySelector('.pl').textContent = paused ? 'Resume' : 'Pause';
+  $('#stepBtn').hidden = !paused;
+  $('#pausedPill').hidden = !paused;
+  consoleEl.classList.toggle('is-paused', paused);
+}
+function setPaused(on) {
+  if (!busy || paused === on) return;
+  paused = on;
+  if (on) {
+    frozen = document.getAnimations ? document.getAnimations().filter(a => a.playState === 'running' && a.id !== 'ui') : [];
+    frozen.forEach(a => a.pause());
+  } else {
+    frozen.forEach(a => { try { a.play(); } catch (e) { /* animation already finished */ } });
+    frozen = [];
+    const waiting = resumeWaiters; resumeWaiters = [];
+    waiting.forEach(r => r());
+  }
+  renderPauseUI();
+}
+function stepOnce() { if (!paused) return; stepMode = true; setPaused(false); }
+const tableList = plan => plan.tables.map(t => SCHEMA[t].label).join(' and ');
+function prepareDb(plan, awaiting) {
+  lastRun = plan; lastMarks = {};
+  $('#crumb').textContent = plan.crumb;
+  $('#runFile').textContent = plan.file;
+  $('#runSql').innerHTML = plan.sql;
+  $('#runSteps').innerHTML = stepsHTML(plan, 'live');
+  $('#outcome').innerHTML = '';
+  $('#vivaText').textContent = 'Each check lights up the column it tests. A glowing edge in the diagram is a foreign key being followed.';
+  $('#nextBtn').hidden = true;
+  renderIncoming(plan, awaiting);
+  setIncStatus(`Values going into ${tableList(plan)}`);
+  resetER();
+  er.classList.add('running');
+  plan.tables.forEach(t => node(t).classList.add('is-target'));
+  renderInspector(plan.tables[0]);
+}
+async function playSteps(plan) {
+  const items = $$('#runSteps > li');
+  for (let i = 0; i < plan.steps.length; i++) {
+    const s = plan.steps[i], li = items[i], fx = s.fx || {};
+    if (!plan.ok && i > plan.failAt) { li.dataset.state = 'skip'; continue; }
+    await gate();
+    li.dataset.state = 'run';
+    setIncStatus(fx.write ? `Writing the row into ${SCHEMA[fx.write].label}` : `Checking ${s.title}`);
+    fillCells(fx.fill);
+    markCells(s.on, fx.cols, 'checking');
+    const quick = s.tag === 'COMMIT' || s.tag === 'BEGIN';
+    const waits = [applyFx(s), sleep(quick ? 450 : 850)];
+    if (fx.write) waits.push(flyRow(fx.write));
+    await Promise.all(waits);
+    if (s.ok) {
+      li.dataset.state = 'ok';
+      markCells(s.on, fx.cols, 'ok');
+      if (fx.write) {
+        bump(fx.write, +1); pulse(fx.write);
+        const w = plan.writes.find(x => x.table === fx.write);
+        setRowTag(fx.write, `stored · #${w.row[SCHEMA[fx.write].pk]}`, 'stored');
+      }
+    } else {
+      li.dataset.state = 'fail';
+      markCells(s.on, fx.cols, null);
+      markCells(s.on, fx.failCols && fx.failCols.length ? fx.failCols : fx.cols, 'fail');
+      (fx.edges || []).forEach(([a, b]) => { const e = edgeEl(a, b); if (e) e.classList.add('is-fail'); });
+      node(s.on).classList.add('is-fail');
+    }
+    clearReads();
+  }
+  plan.ok ? commit(plan) : rollback(plan);
+  renderOutcome(plan);
+  if (plan.ok) syncCommit(plan);
+  if (plan.ok) {
+    setIncStatus(`Committed · ${plan.writes.map(w => `${SCHEMA[w.table].label} row ${w.row[SCHEMA[w.table].pk]}`).join(', ')}`, 'ok');
+  } else {
+    setIncStatus(`${plan.flow === 'subscribe' ? 'Rolled back' : 'Rejected'} at ${plan.steps[plan.failAt].title} · ERROR ${plan.error.code}`, 'fail');
+  }
+  renderInspector(plan.ok ? plan.tables[0] : plan.steps[plan.failAt].on);
+  $('#vivaText').textContent = plan.vivaText;
+  const nxt = plan.next(plan.ok);
+  const nb = $('#nextBtn');
+  if (nxt) { nb.textContent = nxt.label; nb.onclick = nxt.go; nb.hidden = false; } else { nb.hidden = true; }
+}
+function commit(plan) {
+  plan.writes.forEach(w => { const T = db.tables[w.table]; T.rows.push(w.row); T.count += 1; T.next += 1; });
+  if (plan.flow === 'book') db.booked[plan.schedule_id] = (db.booked[plan.schedule_id] || 0) + 1;
+  plan.writes.forEach(w => { lastMarks[w.table] = { newId: w.row[SCHEMA[w.table].pk] }; });
+  plan.tables.forEach(t => { const g = node(t); g.classList.add('is-ok'); setTimeout(() => g.classList.remove('is-ok'), 1800); });
+  syncCounts();
+  refreshSelects();
+  if (plan.flow === 'member') populate('member');
+  freshMember = plan.flow === 'member' || plan.flow === 'subscribe' ? plan.writes[0].row.member_id : null;
+  renderMembers();
+}
+function rollback(plan) {
+  const failOn = plan.steps[plan.failAt].on;
+  plan.writes.forEach(w => {
+    if (w.step < plan.failAt) {
+      bump(w.table, -1);
+      node(w.table).classList.add('is-fail');
+      setRowTag(w.table, 'rolled back', 'undone');
+      lastMarks[w.table] = { ghost: { row: w.row, label: 'rolled back' } };
+    } else if (w.table === failOn) {
+      setRowTag(w.table, 'rejected', 'rejected');
+      lastMarks[w.table] = { ghost: { row: w.row, label: 'rejected', noId: true } };
+    } else {
+      setRowTag(w.table, 'not run', 'skipped');
+    }
+  });
+}
+function renderOutcome(plan) {
+  const o = $('#outcome');
+  if (plan.ok) {
+    const parts = plan.writes.map(w => `${SCHEMA[w.table].label} · ${SCHEMA[w.table].pk} ${w.row[SCHEMA[w.table].pk]}`);
+    o.innerHTML = `<div class="oc ok"><b>COMMIT</b><p>${plan.writes.length === 1 ? '1 row' : plan.writes.length + ' rows'} stored: ${esc(parts.join(', '))}.</p></div>`;
+    return;
+  }
+  const undone = plan.writes.filter(w => w.step < plan.failAt);
+  const note = undone.length
+    ? `${undone.map(w => `${SCHEMA[w.table].label} row ${w.row[SCHEMA[w.table].pk]}`).join(', ')} was written, then undone. Nothing was kept.`
+    : 'Nothing was written. Fix the value and run it again.';
+  o.innerHTML = `<div class="oc fail"><b>${plan.flow === 'subscribe' ? 'ROLLBACK' : 'REJECTED'}</b><code>ERROR ${plan.error.code} (${plan.error.state}): ${esc(plan.error.msg)}</code><p>${esc(note)}</p></div>`;
+}
+async function run() {
+  if (flow === 'crud') { runCrud(); return; }
+  if (busy) return;
+  setBusy(true);
+  try {
+    const plan = currentPlan();
+    await bringConsoleIntoView();
+    const sources = chipSources(forms[flow], plan);
+    prepareDb(plan, new Set(sources.map(s => `${s.table}.${s.col}`)));
+    await swapFace('db');
+    faceDb.focus({ preventScroll: true });
+    await flyChips(sources);
+    const n = $$('#incRows .cell').length;
+    setIncStatus(`${n} values staged for ${tableList(plan)}. Checking each one next`);
+    $$('#incRows .cell').forEach((el, i) => setTimeout(() => pop(el), calm() ? 0 : i * 70));
+    await sleep(1400);
+    await gate();
+    centerOn(plan.tables[0]);
+    await playSteps(plan);
+  } finally {
+    setBusy(false);
+  }
+}
+async function goFlow(f, preset) {
+  populate(f, preset || {});
+  setFlow(f);
+  await swapFace('form');
+  const firstField = $('input, select', forms[f]);
+  if (firstField) firstField.focus({ preventScroll: true });
+}
+async function browse() {
+  if (!lastRun) {
+    resetER();
+    $('#incoming').hidden = true;
+    $('#crumb').textContent = 'Browsing gym_db';
+    $('#runFile').textContent = 'gym_db';
+    $('#runSql').innerHTML = '<span class="cm">-- No statement has run yet.</span>\n<span class="cm">-- Fill a form and press Run to trace it here.</span>';
+    $('#runSteps').innerHTML = '';
+    $('#outcome').innerHTML = '';
+    $('#nextBtn').hidden = true;
+    $('#vivaText').textContent = 'Each arrow points from the parent (1) to the child (N). Dashed borders mark associative entities that resolve a many-to-many relationship.';
+    renderInspector(inspKey);
+  }
+  await swapFace('db');
+  faceDb.focus({ preventScroll: true });
+}
+async function resetAll() {
+  if (API.on) { try { await api('/api/reset', {}); } catch (e) { /* keep the local reset */ } }
+  db = seed(); lastRun = null; lastMarks = {};
+  resetER();
+  $('#incoming').hidden = true;
+  Object.keys(forms).forEach(f => populate(f));
+  setFlow('member');
+  inspKey = 'member';
+  renderInspector('member');
+  freshMember = null;
+  renderMembers();
+  await swapFace('form');
+}
+
+/* ---------- events ---------- */
+Object.values(forms).forEach(f => {
+  f.addEventListener('submit', e => { e.preventDefault(); run(); });
+  f.addEventListener('input', updatePreview);
+  f.addEventListener('change', updatePreview);
+});
+$('#s-plan').addEventListener('change', () => { syncPlanFields(); updatePreview(); });
+$('#s-start').addEventListener('change', () => { syncPlanFields(); updatePreview(); });
+$$('[data-try]').forEach(b => b.addEventListener('click', () => { TRIES[b.dataset.try](); updatePreview(); }));
+const tabs = $$('.tab');
+tabs.forEach((t, i) => {
+  t.addEventListener('click', () => setFlow(t.dataset.flow));
+  t.addEventListener('keydown', e => {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!d) return;
+    e.preventDefault();
+    const n = tabs[(i + d + tabs.length) % tabs.length];
+    n.focus(); setFlow(n.dataset.flow);
+  });
+});
+$('#backBtn').addEventListener('click', async () => { updatePreview(); await swapFace('form'); });
+$('#browseBtn').addEventListener('click', browse);
+$('#pauseBtn').addEventListener('click', () => setPaused(!paused));
+$('#stepBtn').addEventListener('click', stepOnce);
+document.addEventListener('keydown', e => {
+  if (!busy || e.ctrlKey || e.metaKey || e.altKey || (e.target instanceof Element && e.target.closest('input, select, textarea'))) return;
+  const k = e.key.toLowerCase();
+  if (k === 'p') { e.preventDefault(); setPaused(!paused); }
+  else if (k === 'n' && paused) { e.preventDefault(); stepOnce(); }
+});
+$('#resetBtn').addEventListener('click', resetAll);
+$('#inspTabs').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if (b) renderInspector(b.dataset.t); });
+er.addEventListener('click', e => { const g = e.target.closest('.node'); if (g) renderInspector(g.dataset.k); });
+er.addEventListener('keydown', e => {
+  const g = e.target.closest('.node');
+  if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); renderInspector(g.dataset.k); }
+});
+
+/* ---------- scroll-linked title → console ---------- */
+const root = document.documentElement, intro = $('#intro'), demo = $('#demo');
+let ticking = false;
+function onScrollFrame() {
+  ticking = false;
+  if (calm()) { root.style.setProperty('--p', '0'); demo.style.setProperty('--q', '1'); return; }
+  const vh = window.innerHeight;
+  const range = Math.max(1, intro.offsetHeight - vh);
+  const p = clamp(window.scrollY / (range * .72), 0, 1);
+  root.style.setProperty('--p', p.toFixed(4));
+  const top = demo.getBoundingClientRect().top;
+  const q = clamp((vh * .95 - top) / (vh * .6), 0, 1);
+  demo.style.setProperty('--q', q.toFixed(4));
+}
+const requestFrame = () => { if (!ticking) { ticking = true; requestAnimationFrame(onScrollFrame); } };
+window.addEventListener('scroll', requestFrame, { passive: true });
+window.addEventListener('resize', requestFrame);
+if (motionQuery.addEventListener) motionQuery.addEventListener('change', requestFrame);
+
+/* ---------- MongoDB sync (active when database/gym_server.py is running) ---------- */
+const API = { on: false, base: location.port === '8770' ? '' : 'http://127.0.0.1:8770' };
+async function api(path, body) {
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 5000);
+  try {
+    const opts = body === undefined ? { signal: ctl.signal } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal };
+    const res = await fetch(API.base + path, opts);
+    return await res.json();
+  } finally { clearTimeout(timer); }
+}
+function mergeState(state) {
+  const base = seed();
+  db.booked = { ...base.booked };
+  Object.keys(SCHEMA).forEach(k => {
+    const rows = state[k]; if (!Array.isArray(rows)) return;
+    const T = db.tables[k], B = base.tables[k], pk = SCHEMA[k].pk;
+    T.rows = rows;
+    T.count = B.count + Math.max(0, rows.length - B.rows.length);
+    T.next = Math.max(B.next, rows.reduce((m, r) => Math.max(m, Number(r[pk]) || 0), 0) + 1);
+  });
+  const seeded = new Set(base.tables.registration.rows.map(r => r.registration_id));
+  db.tables.registration.rows.filter(r => !seeded.has(r.registration_id) && r.status !== 'CANCELLED')
+    .forEach(r => { db.booked[r.schedule_id] = (db.booked[r.schedule_id] || 0) + 1; });
+}
+async function loadFromDb() {
+  mergeState(await api('/api/state'));
+  syncCounts(); refreshSelects();
+  Object.keys(forms).forEach(f => populate(f));
+  setFlow(flow); renderMembers(); renderInspector(inspKey);
+}
+async function connectDb() {
+  try {
+    const h = await api('/api/health');
+    if (!h || !h.ok) return;
+    await loadFromDb();
+    API.on = true;
+    $('.db-id .dot').classList.add('live');
+    $('.db-note').textContent = `Connected to MongoDB ${h.server} · database gym_db · every COMMIT is saved`;
+    $('.foot span').innerHTML = '<b>Review 2</b> · Implementation &amp; prototype · changes are saved to MongoDB gym_db';
+  } catch (e) { /* no server: the page keeps running its in-browser engine */ }
+}
+async function syncCommit(plan) {
+  if (!API.on) return;
+  const box = $('#outcome .oc'); if (!box) return;
+  const line = document.createElement('p'); line.className = 'sync'; line.textContent = 'Saving to MongoDB…';
+  box.appendChild(line);
+  try {
+    const r = await api('/api/commit', { flow: plan.flow, writes: plan.writes.map(w => ({ table: w.table, row: w.row })) });
+    line.textContent = r.ok ? `Saved to MongoDB gym_db: ${r.saved.join(', ')}` : `MongoDB rejected it: ${r.error}`;
+    line.classList.add(r.ok ? 'ok' : 'bad');
+  } catch (e) {
+    line.textContent = 'Could not reach gym_server.py, so this change was not saved to MongoDB.';
+    line.classList.add('bad');
+  }
+}
+
+/* ---------- tab 5: CRUD on any table ---------- */
+const SQL_NAME = k => (k === 'workout' ? 'Workout_Programme' : SCHEMA[k].label);
+const ENUMS = {
+  'subscription.status': ['ACTIVE', 'EXPIRED', 'CANCELLED'], 'payment.method': ['CASH', 'CARD', 'UPI'],
+  'trainer.shift': ['MORNING', 'EVENING'], 'schedule.day': ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
+  'registration.status': ['BOOKED', 'ATTENDED', 'CANCELLED'], 'equipment.status': ['ACTIVE', 'OUT_OF_SERVICE', 'RETIRED'],
+};
+const REQUIRED = {
+  member: ['name', 'phone', 'email', 'join_date'], plan: ['name', 'duration_months', 'price'],
+  subscription: ['member_id', 'plan_id', 'start_date', 'end_date', 'status'], payment: ['subscription_id', 'amount', 'method', 'paid_on'],
+  renewal: ['subscription_id', 'renewed_on', 'new_end_date'], trainer: ['name', 'shift', 'phone'],
+  assessment: ['member_id', 'trainer_id', 'date'], workout: ['member_id', 'title', 'weeks'],
+  class: ['trainer_id', 'title', 'capacity'], schedule: ['class_id', 'day', 'start_time', 'end_time'],
+  registration: ['member_id', 'schedule_id', 'booking_date', 'status'], attendance: ['registration_id', 'check_in'],
+  equipment: ['name', 'status'], maintenance: ['equipment_id', 'date', 'cost'],
+};
+const FKMAP = {
+  subscription: { member_id: 'member', plan_id: 'plan' }, payment: { subscription_id: 'subscription' },
+  renewal: { subscription_id: 'subscription' }, assessment: { member_id: 'member', trainer_id: 'trainer' },
+  workout: { member_id: 'member' }, class: { trainer_id: 'trainer' }, schedule: { class_id: 'class' },
+  registration: { member_id: 'member', schedule_id: 'schedule' }, attendance: { registration_id: 'registration' },
+  maintenance: { equipment_id: 'equipment' },
+};
+const CASCADE = { subscription: ['payment', 'renewal'] };
+const UNIQUES = { member: [['email'], ['phone']], plan: [['name']], trainer: [['phone']], registration: [['schedule_id', 'member_id']], attendance: [['registration_id']] };
+const CHECKS = {
+  plan: [['chk_price', r => r.price === null || r.price >= 0, 'price ≥ 0'], ['chk_duration', r => r.duration_months === null || r.duration_months > 0, 'duration_months > 0']],
+  subscription: [['chk_dates', r => !r.start_date || !r.end_date || r.end_date > r.start_date, 'end_date > start_date']],
+  payment: [['chk_amount', r => r.amount === null || r.amount >= 0, 'amount ≥ 0']],
+  assessment: [['chk_metrics', r => ['weight', 'bmi', 'body_fat'].every(c => r[c] === null || r[c] === undefined || r[c] >= 0), 'weight, bmi, body_fat ≥ 0']],
+  workout: [['chk_weeks', r => r.weeks === null || r.weeks > 0, 'weeks > 0']],
+  class: [['chk_capacity', r => r.capacity === null || r.capacity > 0, 'capacity > 0']],
+  schedule: [['chk_times', r => !r.start_time || !r.end_time || r.end_time > r.start_time, 'end_time > start_time']],
+  attendance: [['chk_checkout', r => !r.check_out || (!!r.check_in && r.check_out > r.check_in), 'check_out > check_in']],
+  maintenance: [['chk_cost', r => r.cost === null || r.cost >= 0, 'cost ≥ 0']],
+};
+const OP_LABEL = { create: 'Create', read: 'Read', update: 'Update', delete: 'Delete' };
+const crud = { table: 'member', op: 'read', id: null, filter: '', highlight: null, status: null };
+const pkOf = k => SCHEMA[k].pk;
+const rowsOf = k => db.tables[k].rows.slice().sort((a, b) => a[pkOf(k)] - b[pkOf(k)]);
+const findRow = (k, id) => db.tables[k].rows.find(r => r[pkOf(k)] === id);
+const children = k => Object.entries(FKMAP).flatMap(([child, cols]) => Object.entries(cols).filter(([, p]) => p === k).map(([col]) => [child, col]));
+const same = (a, b) => (a === null || a === undefined ? null : String(a)) === (b === null || b === undefined ? null : String(b));
+
+function rowSummary(k, r) {
+  const text = SCHEMA[k].cols.filter(([c, t]) => c !== pkOf(k) && ['VARCHAR', 'CHAR', 'DATE'].includes(t)).slice(0, 2).map(([c]) => r[c]).filter(v => v !== null && v !== undefined);
+  const rest = text.length ? text : Object.entries(r).filter(([c]) => c !== pkOf(k)).slice(0, 2).map(([c, v]) => `${c} ${v}`);
+  return `${r[pkOf(k)]} · ${rest.join(' · ')}`;
+}
+function defaultFor(k, [c, type]) {
+  if (ENUMS[`${k}.${c}`]) return ENUMS[`${k}.${c}`][0];
+  if (FKMAP[k] && FKMAP[k][c]) { const rows = rowsOf(FKMAP[k][c]); return rows.length ? rows[rows.length - 1][pkOf(FKMAP[k][c])] : null; }
+  if (type === 'DATE') return day(0);
+  if (type === 'DATETIME') return nowDT(0);
+  return null;
+}
+function fieldHTML(k, [c, type], value, op) {
+  const id = `k-f-${c}`, isPk = c === pkOf(k), fk = FKMAP[k] && FKMAP[k][c], en = ENUMS[`${k}.${c}`];
+  const req = (REQUIRED[k] || []).includes(c);
+  const dis = op === 'delete' ? ' disabled' : '';
+  const cap = [type, isPk ? 'PK' : '', fk ? `FK → ${SCHEMA[fk].label}` : '', req ? 'NOT NULL' : ''].filter(Boolean).join(' · ');
+  let control;
+  if (isPk) {
+    control = `<input id="${id}" class="mono" value="${op === 'create' ? 'AUTO_INCREMENT' : esc(value ?? '')}" disabled>`;
+  } else if (fk) {
+    control = `<select id="${id}" name="${c}"${dis}><option value="">NULL</option>${rowsOf(fk).map(r => `<option value="${r[pkOf(fk)]}"${same(r[pkOf(fk)], value) ? ' selected' : ''}>${esc(rowSummary(fk, r))}</option>`).join('')}</select>`;
+  } else if (en) {
+    control = `<select id="${id}" name="${c}"${dis}><option value="">NULL</option>${en.map(v => `<option value="${v}"${v === value ? ' selected' : ''}>${v}</option>`).join('')}</select>`;
+  } else {
+    const t = type === 'INT' || type === 'DECIMAL' ? 'number' : type === 'DATE' ? 'date' : type === 'DATETIME' ? 'datetime-local' : type === 'TIME' ? 'time' : 'text';
+    const step = type === 'DECIMAL' ? ' step="0.01"' : type === 'TIME' ? ' step="1"' : '';
+    const v = value === null || value === undefined ? '' : type === 'DATETIME' ? String(value).slice(0, 16).replace(' ', 'T') : String(value);
+    control = `<input id="${id}" name="${c}" type="${t}"${step} value="${esc(v)}"${['INT', 'DECIMAL', 'CHAR'].includes(type) ? ' class="mono"' : ''}${dis}>`;
+  }
+  return `<label class="field"><span class="fh"><span class="fl">${c}</span><span class="fc">${esc(cap)}</span></span>${control}</label>`;
+}
+function readCrudRow() {
+  const k = crud.table, row = {};
+  SCHEMA[k].cols.forEach(([c, type]) => {
+    if (c === pkOf(k)) return;
+    const el = $(`#k-f-${c}`); if (!el) return;
+    const v = el.value.trim();
+    if (v === '') { row[c] = null; return; }
+    if ((FKMAP[k] && FKMAP[k][c]) || type === 'INT') row[c] = Number(v);
+    else if (type === 'DECIMAL') row[c] = Number(Number(v).toFixed(2));
+    else if (type === 'DATETIME') row[c] = v.replace('T', ' ') + (v.length === 16 ? ':00' : '');
+    else if (type === 'TIME') row[c] = v.length === 5 ? v + ':00' : v;
+    else row[c] = v;
+  });
+  return row;
+}
+function filteredRows() {
+  const f = crud.filter.trim().toLowerCase();
+  return rowsOf(crud.table).filter(r => !f || Object.values(r).some(v => String(v ?? '').toLowerCase().includes(f)));
+}
+function planCrud() {
+  const k = crud.table, T = db.tables[k], pk = pkOf(k), name = SQL_NAME(k), op = crud.op;
+  const steps = [];
+  const S = (tag, title, detail, ok, error) => steps.push({ on: k, tag, title, detail, ok: !!ok, fx: {}, error: error || null });
+  const plan = { k, op, steps, full: null, changes: null, before: null, cascade: [] };
+  const colList = SCHEMA[k].cols.map(([c]) => c);
+  if (op === 'read') {
+    const f = crud.filter.trim();
+    plan.sql = `${K('SELECT')} * ${K('FROM')} <span class="t">${name}</span>` +
+      (f ? `\n${K('WHERE')} <span class="f">CONCAT_WS</span>(' ', ${colList.map(c => `<span class="c">${c}</span>`).join(', ')})\n      ${K('LIKE')} ${lit('%' + f + '%').html}` : '') +
+      `\n${K('ORDER BY')} <span class="c">${pk}</span>;`;
+    S('SELECT', `Read ${name}`, `${filteredRows().length} of ${T.rows.length} stored rows match`, true);
+  } else if (op === 'delete') {
+    const before = plan.before = findRow(k, crud.id);
+    plan.sql = `${K('DELETE FROM')} <span class="t">${name}</span>\n${K('WHERE')} <span class="c">${pk}</span> = ${lit(crud.id, 'num').html};`;
+    S('WHERE', `Find ${pk} = ${crud.id ?? 'NULL'}`, before ? `row found: ${rowSummary(k, before)}` : 'no row is selected', !!before, E(1032, 'HY000', "Can't find record"));
+    children(k).forEach(([child, col]) => {
+      const n = db.tables[child].rows.filter(r => r[col] === crud.id).length;
+      if ((CASCADE[k] || []).includes(child)) {
+        plan.cascade.push([child, col]);
+        S('CASCADE', `ON DELETE CASCADE → ${SCHEMA[child].label}`, `${n} ${SCHEMA[child].label} row${n === 1 ? '' : 's'} removed with it`, true);
+      } else {
+        S('FK', `RESTRICT · ${SCHEMA[child].label}.${col}`, n ? `${n} ${SCHEMA[child].label} row${n === 1 ? '' : 's'} still reference it` : `no ${SCHEMA[child].label} rows reference it`, !n,
+          E(1451, '23000', `Cannot delete or update a parent row: a foreign key constraint fails (\`gym_db\`.\`${child}\`, FOREIGN KEY (\`${col}\`) REFERENCES \`${k}\` (\`${pk}\`))`));
+      }
+    });
+    S('WRITE', `Row removed from ${name}`, `${T.count} → ${T.count - 1} rows`, true);
+  } else {
+    const row = readCrudRow();
+    const before = plan.before = op === 'update' ? findRow(k, crud.id) : null;
+    const full = plan.full = op === 'create' ? { [pk]: T.next, ...row } : { ...(before || {}), ...row };
+    const cols = colList.filter(c => c !== pk);
+    if (op === 'create') {
+      plan.sql = insertSQL(name, cols, cols.map(c => cellLit(k, c, full[c])));
+    } else {
+      const changed = before ? cols.filter(c => !same(before[c], row[c])) : [];
+      plan.changes = Object.fromEntries(changed.map(c => [c, row[c]]));
+      plan.sql = `${K('UPDATE')} <span class="t">${name}</span>\n${K('SET')} ` +
+        (changed.length ? changed.map(c => `<span class="c">${c}</span> = ${cellLit(k, c, row[c]).html}`).join(',\n    ') : '<span class="cm">-- nothing changed yet</span>') +
+        `\n${K('WHERE')} <span class="c">${pk}</span> = ${lit(crud.id, 'num').html};`;
+      S('WHERE', `Find ${pk} = ${crud.id ?? 'NULL'}`, before ? `${changed.length} column${changed.length === 1 ? '' : 's'} will change` : 'no row is selected', !!before && changed.length > 0,
+        before ? { code: 0, state: '', msg: 'Change at least one value to update the row' } : E(1032, 'HY000', "Can't find record"));
+    }
+    const nulls = (REQUIRED[k] || []).filter(c => full[c] === null || full[c] === undefined);
+    S('NOT NULL', 'Required columns', nulls.length ? `${nulls[0]} is NULL` : `${(REQUIRED[k] || []).join(', ')} have values`, !nulls.length, E(1048, '23000', `Column '${nulls[0]}' cannot be null`));
+    const long = 'phone' in full && full.phone && String(full.phone).length > 10;
+    S('TYPE', 'Values fit their columns', long ? `phone has ${String(full.phone).length} characters; CHAR(10) holds 10` : 'every value fits its column type', !long, E(1406, '22001', "Data too long for column 'phone' at row 1"));
+    (CHECKS[k] || []).forEach(([n, fn, d]) => S('CHECK', `${n}: ${d}`, fn(full) ? 'satisfied' : 'violated', fn(full), E(3819, 'HY000', `Check constraint '${n}' is violated.`)));
+    Object.entries(FKMAP[k] || {}).forEach(([c, p]) => {
+      if (full[c] === null || full[c] === undefined) return;
+      const ok = !!findRow(p, full[c]);
+      S('FK', `${c} → ${SCHEMA[p].label}`, ok ? `found ${pkOf(p)} ${full[c]}` : `no ${SCHEMA[p].label} row has ${pkOf(p)} ${full[c]}`, ok, E(1452, '23000', fkMsg(k, `fk_${k}_${c}`, c, p)));
+    });
+    (UNIQUES[k] || []).forEach(u => {
+      const dup = T.rows.find(r => r[pk] !== full[pk] && u.every(c => full[c] !== null && full[c] !== undefined && same(r[c], full[c])));
+      S('UNIQUE', `UNIQUE (${u.join(', ')})`, dup ? `${pk} ${dup[pk]} already has this value` : 'no other row has this value', !dup, E(1062, '23000', `Duplicate entry '${u.map(c => full[c]).join('-')}' for key '${k}.${u.join('_')}'`));
+    });
+    if (k === 'subscription' && (op === 'create' || full.status === 'ACTIVE')) {
+      const clash = T.rows.find(r => r[pk] !== full[pk] && r.member_id === full.member_id && r.status === 'ACTIVE' && full.start_date && full.end_date && r.start_date < full.end_date && r.end_date > full.start_date);
+      S('TRIGGER', 'trg_no_overlap', clash ? `subscription_id ${clash.subscription_id} is ACTIVE from ${clash.start_date} to ${clash.end_date}` : 'no overlapping ACTIVE subscription', !clash, E(1644, '45000', 'Member already has an ACTIVE subscription for these dates'));
+    }
+    if (k === 'registration' && op === 'create') {
+      const active = full.booking_date ? activeSub(full.member_id, full.booking_date) : null;
+      S('TRIGGER', 'trg_active_subscription', active ? `subscription_id ${active.subscription_id} is ACTIVE` : 'member has no ACTIVE subscription on that date', !!active, E(1644, '45000', 'No active subscription for this member'));
+      const sch = findRow('schedule', full.schedule_id), cls = sch && findRow('class', sch.class_id), booked = db.booked[full.schedule_id] || 0;
+      S('TRIGGER', 'trg_class_capacity', cls ? `${booked} of ${cls.capacity} seats booked` : 'no schedule selected', !cls || booked < cls.capacity, E(1644, '45000', 'Class is full'));
+    }
+    S(op === 'create' ? 'PK' : 'WRITE', op === 'create' ? 'AUTO_INCREMENT' : `Row updated in ${name}`, op === 'create' ? `assigns ${pk} = ${T.next}` : `${pk} ${crud.id} keeps its key`, true);
+    if (op === 'create') S('WRITE', `Row stored in ${name}`, `${T.count} → ${T.count + 1} rows`, true);
+  }
+  plan.failAt = steps.findIndex(s => !s.ok);
+  plan.ok = plan.failAt === -1;
+  plan.error = plan.ok ? null : steps[plan.failAt].error;
+  return plan;
+}
+const cellLit = (k, c, v) => {
+  if (v === null || v === undefined) return lit(null);
+  const type = (SCHEMA[k].cols.find(x => x[0] === c) || [])[1];
+  if (type === 'DECIMAL') return lit(Number(v).toFixed(2), 'num');
+  if (type === 'INT') return lit(v, 'num');
+  return lit(v);
+};
+function crudPreview() {
+  const p = planCrud();
+  $('#pvFile').textContent = `${crud.op}_${crud.table}.sql`;
+  $('#pvTag').textContent = OP_LABEL[crud.op];
+  $('#pvSql').innerHTML = p.sql;
+  $('#pvSteps').innerHTML = stepsHTML(p, 'predict');
+  const vd = $('#pvVerdict');
+  vd.className = 'verdict ' + (p.ok ? 'ok' : 'fail');
+  vd.textContent = p.ok ? (crud.op === 'read' ? `Returns ${filteredRows().length} rows` : 'Predicted: succeeds') : (p.error.code ? `Predicted: ERROR ${p.error.code}` : 'Nothing to change');
+  if (crud.op === 'read') renderCrudResult();
+}
+function renderCrudResult() {
+  const k = crud.table, meta = SCHEMA[k], pk = meta.pk;
+  let rows = crud.op === 'read' ? filteredRows() : rowsOf(k).slice(-8);
+  if (crud.highlight !== null && crud.op !== 'read' && !rows.some(r => r[pk] === crud.highlight)) {
+    const h = findRow(k, crud.highlight); if (h) rows = [...rows.slice(1), h];
+  }
+  const st = crud.status;
+  const head = '<thead><tr>' + meta.cols.map(([n, type, key]) => `<th class="${n === pk ? 'pk' : ''}${type === 'INT' || type === 'DECIMAL' ? ' num' : ''}"><span>${n}</span>${n === pk ? '<small>PK</small>' : key ? `<small>${key}</small>` : ''}</th>`).join('') + '</tr></thead>';
+  const body = rows.map(r => `<tr class="${r[pk] === crud.highlight ? 'new' : ''}">${meta.cols.map(c => fmtCell(c, r[c[0]])).join('')}</tr>`).join('');
+  const label = crud.op === 'read' ? `${rows.length} row${rows.length === 1 ? '' : 's'} from ${SQL_NAME(k)}` : `Latest rows in ${SQL_NAME(k)} (${db.tables[k].count} in total)`;
+  $('#crudResult').innerHTML = `<div class="crud-status ${st ? st.tone : ''}">${esc(st ? st.text : label)}</div><div class="table-scroll"><table class="grid">${head}<tbody>${body || `<tr><td colspan="${meta.cols.length}" class="null">No rows</td></tr>`}</tbody></table></div>`;
+}
+function buildCrudForm() {
+  const sel = $('#k-table');
+  if (!sel.options.length) sel.innerHTML = Object.keys(SCHEMA).map(k => `<option value="${k}">${SQL_NAME(k)}</option>`).join('');
+  sel.value = crud.table;
+  const k = crud.table, op = crud.op, pk = pkOf(k), rows = rowsOf(k);
+  $$('#k-ops button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.op === op)));
+  const needRow = op === 'update' || op === 'delete';
+  $('#k-row-wrap').hidden = !needRow;
+  $('#k-filter-wrap').hidden = op !== 'read';
+  if (needRow) {
+    if (!rows.some(r => r[pk] === crud.id)) crud.id = rows.length ? rows[rows.length - 1][pk] : null;
+    $('#k-row').innerHTML = rows.map(r => `<option value="${r[pk]}">${esc(rowSummary(k, r))}</option>`).join('');
+    if (crud.id !== null) $('#k-row').value = String(crud.id);
+  }
+  const before = needRow ? findRow(k, crud.id) : null;
+  $('#k-fields').innerHTML = op === 'read' ? '' : SCHEMA[k].cols.map(col => fieldHTML(k, col, op === 'create' ? (col[0] === pk ? null : defaultFor(k, col)) : (before ? before[col[0]] : null), op)).join('');
+  $('#k-fields').hidden = op === 'read';
+  const btn = $('#k-run');
+  btn.innerHTML = `Run ${{ create: 'INSERT', read: 'SELECT', update: 'UPDATE', delete: 'DELETE' }[op]} <span aria-hidden="true">→</span>`;
+  btn.classList.toggle('danger', op === 'delete');
+  $('#k-hint').textContent = op === 'read' ? 'reads only' : `${op === 'create' ? 'adds a row to' : op === 'update' ? 'changes a row in' : 'removes a row from'} ${SQL_NAME(k)}`;
+  $('#k-desc').innerHTML = {
+    create: `Adds a new row to <b>${SQL_NAME(k)}</b>. The key comes from AUTO_INCREMENT.`,
+    read: `Lists the rows stored in <b>${SQL_NAME(k)}</b>. Type in Search to filter them.`,
+    update: `Changes the selected <b>${SQL_NAME(k)}</b> row. Only the columns you edit go into the SET clause.`,
+    delete: `Removes the selected <b>${SQL_NAME(k)}</b> row, unless other tables still point at it.`,
+  }[op];
+  if (flow === 'crud') updatePreview();
+}
+async function runCrud() {
+  if (busy) return;
+  const p = planCrud(), k = crud.table, pk = pkOf(k), T = db.tables[k];
+  if (crud.op === 'read') { crud.status = null; renderCrudResult(); return; }
+  if (!p.ok) {
+    crud.status = { tone: 'fail', text: p.error.code ? `ERROR ${p.error.code} (${p.error.state}): ${p.error.msg}` : p.error.msg };
+    renderCrudResult(); return;
+  }
+  const btn = $('#k-run'); btn.disabled = true;
+  let saved = false;
+  try {
+    if (API.on) {
+      let r;
+      try {
+        r = crud.op === 'create' ? await api('/api/commit', { writes: [{ table: k, row: p.full }] })
+          : crud.op === 'update' ? await api('/api/update', { table: k, id: crud.id, set: p.changes })
+          : await api('/api/delete', { table: k, id: crud.id });
+      } catch (e) {
+        crud.status = { tone: 'fail', text: 'Could not reach gym_server.py, so nothing was changed.' }; renderCrudResult(); return;
+      }
+      if (!r.ok) { crud.status = { tone: 'fail', text: `MongoDB rejected it: ${r.error}` }; renderCrudResult(); return; }
+      saved = true;
+    }
+    if (crud.op === 'create') {
+      T.rows.push(p.full); T.count += 1; T.next += 1;
+      if (k === 'registration') db.booked[p.full.schedule_id] = (db.booked[p.full.schedule_id] || 0) + 1;
+      crud.highlight = p.full[pk];
+    } else if (crud.op === 'update') {
+      Object.assign(p.before, p.changes);
+      crud.highlight = crud.id;
+    } else {
+      p.cascade.forEach(([child, col]) => {
+        const C = db.tables[child], n = C.rows.filter(r => r[col] === crud.id).length;
+        C.rows = C.rows.filter(r => r[col] !== crud.id); C.count -= n;
+      });
+      if (k === 'registration' && p.before.status !== 'CANCELLED') db.booked[p.before.schedule_id] = Math.max(0, (db.booked[p.before.schedule_id] || 0) - 1);
+      T.rows = T.rows.filter(r => r[pk] !== crud.id); T.count -= 1;
+      crud.highlight = null; crud.id = null;
+    }
+    const where = saved ? 'saved to MongoDB gym_db' : 'in this page only (gym_server.py is not running)';
+    const what = crud.op === 'create' ? `Inserted ${pk} ${p.full[pk]}`
+      : crud.op === 'update' ? `Updated ${pk} ${p.before[pk]}`
+      : `Deleted ${pk} ${p.before[pk]}${p.cascade.length ? ' and its dependent rows' : ''}`;
+    crud.status = { tone: 'ok', text: `${what} · ${where}` };
+    syncCounts(); refreshSelects(); renderMembers(); renderInspector(inspKey);
+    buildCrudForm(); renderCrudResult();
+  } finally {
+    btn.disabled = false;
+  }
+}
+function initCrud() {
+  $('#k-table').addEventListener('change', e => { crud.table = e.target.value; crud.id = null; crud.highlight = null; crud.status = null; buildCrudForm(); renderCrudResult(); });
+  $$('#k-ops button').forEach(b => b.addEventListener('click', () => { crud.op = b.dataset.op; crud.status = null; buildCrudForm(); renderCrudResult(); }));
+  $('#k-row').addEventListener('change', e => { crud.id = Number(e.target.value); crud.status = null; buildCrudForm(); });
+  $('#k-filter').addEventListener('input', e => { crud.filter = e.target.value; crud.status = null; });
+  buildCrudForm(); renderCrudResult();
+}
+
+/* ---------- boot ---------- */
+buildER();
+Object.keys(forms).forEach(f => populate(f));
+setFlow('member');
+renderInspector('member');
+renderMembers();
+initCrud();
+onScrollFrame();
+connectDb();
+})();
+</script>
